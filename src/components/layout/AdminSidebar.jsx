@@ -82,33 +82,47 @@ export function AdminSidebar() {
     router.push('/auth/login');
   };
 
-  const navItems = [
-    {
-      label: 'OVERVIEW',
-      items: [
-        { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
-        { name: 'Statistik', href: '/dashboard/statistik', icon: BarChart3 },
-      ]
-    },
-    {
-      label: 'KELOLA DATA',
-      items: [
-        { name: 'Semua Laporan', href: '/dashboard/laporan', icon: FileText },
-        { name: 'Kategori', href: '/dashboard/kategori', icon: Tag },
-        { name: 'Data Pengguna', href: '/dashboard/pengguna', icon: Users },
-      ]
-    },
-    {
-      label: 'SISTEM',
-      items: [
-        { name: 'Pengaturan', href: '/dashboard/pengaturan', icon: Settings },
-      ]
+  const getNavItems = () => {
+    const basePath = userData?.role === 'admin' ? '/dashboard/admin' : '/dashboard/petugas';
+
+    const items = [
+      {
+        label: 'OVERVIEW',
+        items: [
+          { name: 'Dashboard', href: basePath, icon: LayoutDashboard },
+          { name: 'Statistik', href: `${basePath}/statistik`, icon: BarChart3 },
+        ]
+      },
+      {
+        label: 'KELOLA DATA',
+        items: [
+          { name: 'Semua Laporan', href: `${basePath}/laporan`, icon: FileText },
+          { name: 'Kategori', href: `${basePath}/kategori`, icon: Tag },
+          { name: 'Data Pengguna', href: `${basePath}/pengguna`, icon: Users },
+        ]
+      }
+    ];
+
+    // Admin-only items
+    if (userData?.role === 'admin') {
+      items[1].items.push({ name: 'Data Petugas', href: `${basePath}/petugas`, icon: ShieldCheck });
+      items.push({
+        label: 'SISTEM',
+        items: [
+          { name: 'Pengaturan', href: `${basePath}/pengaturan`, icon: Settings },
+        ]
+      });
     }
-  ];
+
+    return items;
+  };
+
+  const navItems = getNavItems();
 
   const isActive = (href) => {
-    if (href === '/dashboard') {
-      return pathname === '/dashboard';
+    const basePath = userData?.role === 'admin' ? '/dashboard/admin' : '/dashboard/petugas';
+    if (href === basePath) {
+      return pathname === basePath;
     }
     return pathname.startsWith(href);
   };
@@ -161,7 +175,7 @@ export function AdminSidebar() {
         <div className="space-y-8">
           {/* Logo & Close Button */}
           <div className="flex items-center justify-between">
-            <Link href="/dashboard" className="flex items-center gap-3 group">
+            <Link href={userData?.role === 'admin' ? '/dashboard/admin' : '/dashboard/petugas'} className="flex items-center gap-3 group">
               <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-[#33D6A6] to-emerald-400 flex items-center justify-center text-white font-extrabold text-sm shadow-md shadow-[#33D6A6]/20 group-hover:scale-105 transition-transform duration-300">
                 <ShieldCheck size={20} />
               </div>

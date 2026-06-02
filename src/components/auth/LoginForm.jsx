@@ -52,8 +52,10 @@ export function LoginForm() {
           }
 
           setTimeout(() => {
-            if (role === 'admin' || role === 'petugas') {
-              router.push('/dashboard');
+            if (role === 'admin') {
+              router.push('/dashboard/admin');
+            } else if (role === 'petugas') {
+              router.push('/dashboard/petugas');
             } else {
               router.push('/users');
             }

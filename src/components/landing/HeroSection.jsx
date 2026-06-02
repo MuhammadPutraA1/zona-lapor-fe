@@ -1,7 +1,7 @@
 "use client";
-import Image from "next/image"
 import Link from "next/link"
 import { motion } from "framer-motion"
+import { AnimatedHeroIllustration } from "./AnimatedHeroIllustration"
 
 export default function HeroSection({ buttonText = "Mulai Lapor", buttonLink = "/auth/register" }) {
   return (
@@ -14,7 +14,7 @@ export default function HeroSection({ buttonText = "Mulai Lapor", buttonLink = "
         transition={{ duration: 0.6, ease: "easeOut" }}
       >
         <h1 className="text-5xl lg:text-7xl leading-[1.1] font-black text-[#111827] tracking-tight">
-          Suara Anda <br/>
+          Suara Anda <br />
           <span className="text-[#33D6A6] relative">
             Sangat Berarti
             {/* Decorative underline */}
@@ -22,7 +22,7 @@ export default function HeroSection({ buttonText = "Mulai Lapor", buttonLink = "
               <path d="M0 5 Q 50 10 100 5" stroke="currentColor" strokeWidth="8" fill="none" />
             </svg>
           </span>
-          <br/>
+          <br />
           Untuk Perubahan
         </h1>
 
@@ -39,7 +39,7 @@ export default function HeroSection({ buttonText = "Mulai Lapor", buttonLink = "
       </motion.div>
 
       {/* RIGHT */}
-      <motion.div 
+      <motion.div
         className="flex justify-center mt-12 lg:mt-0 relative"
         initial={{ opacity: 0, scale: 0.9 }}
         animate={{ opacity: 1, scale: 1 }}
@@ -47,20 +47,13 @@ export default function HeroSection({ buttonText = "Mulai Lapor", buttonLink = "
       >
         {/* Floating background decorative element */}
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px] bg-[#DDF8EC] rounded-full blur-[60px] -z-10"></div>
-        
+
         <motion.div
           animate={{ y: [0, -15, 0] }}
           transition={{ repeat: Infinity, duration: 4, ease: "easeInOut" }}
         >
-          <Image
-            src="/foto/landing.jpg"
-            alt="landing"
-            width={480}
-            height={480}
-            className="object-contain drop-shadow-2xl rounded-[2rem]"
-            priority
-          />
-        </motion.div>
+          <AnimatedHeroIllustration />
+         </motion.div>
       </motion.div>
 
     </div>

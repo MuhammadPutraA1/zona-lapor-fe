@@ -1,129 +1,96 @@
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import {
-  FileText,
-  Search,
-  Clock,
-  CheckCircle2,
-  Activity,
-  AlertCircle,
-  Eye,
-  MessageSquare,
-  ChevronLeft,
-  ChevronRight,
-  MoreHorizontal,
-  SlidersHorizontal,
-  ArrowUpDown,
-  MapPin,
-  Calendar,
-  User
+  FileText, Search, Clock, CheckCircle2, Activity,
+  AlertCircle, Eye, MessageSquare, ChevronLeft,
+  ChevronRight, MoreHorizontal, SlidersHorizontal,
+  ArrowUpDown, MapPin, Calendar, User, X
 } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 
 export function AdminLaporan() {
+  const [reports, setReports] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [activeFilter, setActiveFilter] = useState('semua');
   const [currentPage, setCurrentPage] = useState(1);
+  const [meta, setMeta] = useState({ totalPages: 1, totalItems: 0 });
 
-  const allReports = [
-    {
-      id: "RPT-2026-0156",
-      judul: "Jalan Rusak dan Berlubang di Jl. Merdeka",
-      pelapor: "Ahmad Rizki",
-      kategori: "Infrastruktur",
-      status: "pending",
-      tanggal: "2026-05-23",
-      lokasi: "Jl. Merdeka No. 45, Kel. Sukajadi",
-      komentar: 3,
-    },
-    {
-      id: "RPT-2026-0155",
-      judul: "Lampu PJU Padam di Area RW 04",
-      pelapor: "Siti Nurhaliza",
-      kategori: "Fasilitas Umum",
-      status: "diproses",
-      tanggal: "2026-05-22",
-      lokasi: "RW 04, Kel. Cibiru",
-      komentar: 7,
-    },
-    {
-      id: "RPT-2026-0154",
-      judul: "Penumpukan Sampah Liar di Bantaran Sungai",
-      pelapor: "Budi Setiawan",
-      kategori: "Kebersihan",
-      status: "selesai",
-      tanggal: "2026-05-21",
-      lokasi: "Bantaran Sungai Cikapundung",
-      komentar: 12,
-    },
-    {
-      id: "RPT-2026-0153",
-      judul: "Pohon Tumbang Menghalangi Jalan",
-      pelapor: "Dewi Lestari",
-      kategori: "Infrastruktur",
-      status: "diproses",
-      tanggal: "2026-05-21",
-      lokasi: "Jl. Raya Cipadung No. 12",
-      komentar: 5,
-    },
-    {
-      id: "RPT-2026-0152",
-      judul: "Dugaan Pungutan Liar di Kantor Kelurahan",
-      pelapor: "Anonymous",
-      kategori: "Pelayanan Publik",
-      status: "pending",
-      tanggal: "2026-05-20",
-      lokasi: "Kantor Kelurahan Antapani",
-      komentar: 0,
-    },
-    {
-      id: "RPT-2026-0151",
-      judul: "Kerusakan Fasilitas Taman Kota",
-      pelapor: "Rina Handayani",
-      kategori: "Fasilitas Umum",
-      status: "selesai",
-      tanggal: "2026-05-19",
-      lokasi: "Taman Kota Bandung",
-      komentar: 8,
-    },
-    {
-      id: "RPT-2026-0150",
-      judul: "Banjir Akibat Drainase Tersumbat",
-      pelapor: "Hendra Wijaya",
-      kategori: "Infrastruktur",
-      status: "ditolak",
-      tanggal: "2026-05-18",
-      lokasi: "Jl. Gatot Subroto, Kel. Turangga",
-      komentar: 2,
-    },
-    {
-      id: "RPT-2026-0149",
-      judul: "Kebisingan Pabrik di Lingkungan Perumahan",
-      pelapor: "Agus Prasetyo",
-      kategori: "Keamanan",
-      status: "diproses",
-      tanggal: "2026-05-17",
-      lokasi: "Perum Griya Asri, Kel. Rancasari",
-      komentar: 4,
-    },
-  ];
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedReport, setSelectedReport] = useState(null);
+  const [newStatus, setNewStatus] = useState('');
+  const [updating, setUpdating] = useState(false);
 
   const filters = [
-    { key: 'semua', label: 'Semua', count: allReports.length },
-    { key: 'pending', label: 'Menunggu', count: allReports.filter(r => r.status === 'pending').length },
-    { key: 'diproses', label: 'Diproses', count: allReports.filter(r => r.status === 'diproses').length },
-    { key: 'selesai', label: 'Selesai', count: allReports.filter(r => r.status === 'selesai').length },
-    { key: 'ditolak', label: 'Ditolak', count: allReports.filter(r => r.status === 'ditolak').length },
+    { key: 'semua', label: 'Semua' },
+    { key: 'pending', label: 'Menunggu' },
+    { key: 'diproses', label: 'Diproses' },
+    { key: 'selesai', label: 'Selesai' },
+    { key: 'ditolak', label: 'Ditolak' },
   ];
 
-  const filteredReports = allReports.filter((report) => {
-    const matchFilter = activeFilter === 'semua' || report.status === activeFilter;
-    const matchSearch = searchQuery === '' ||
-      report.judul.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      report.pelapor.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      report.id.toLowerCase().includes(searchQuery.toLowerCase());
-    return matchFilter && matchSearch;
-  });
+  const fetchReports = useCallback(async () => {
+    setLoading(true);
+    try {
+      let url = `/api/reports?page=${currentPage}&limit=10`;
+      if (activeFilter !== 'semua') url += `&status=${activeFilter}`;
+      
+      // Catatan: Jika ingin mencari berdasarkan resi, kita akan panggil search, tapi 
+      // kita gunakan query biasa dulu jika backend searchByNomorResi khusus /search
+      if (searchQuery) url = `/api/reports/search?resi=${searchQuery}`;
+
+      const res = await fetch(url, { credentials: 'include' });
+      const data = await res.json();
+      if (data.success) {
+        setReports(data.data);
+        if (data.meta) setMeta(data.meta);
+        else setMeta({ totalPages: 1, totalItems: data.data.length });
+      } else {
+        setReports([]);
+      }
+    } catch (error) {
+      console.error("Gagal memuat laporan", error);
+    } finally {
+      setLoading(false);
+    }
+  }, [currentPage, activeFilter, searchQuery]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => fetchReports(), 500);
+    return () => clearTimeout(timer);
+  }, [fetchReports]);
+
+  const openModal = (report) => {
+    setSelectedReport(report);
+    setNewStatus(report.status);
+    setIsModalOpen(true);
+  };
+
+  const handleUpdateStatus = async () => {
+    if (!selectedReport || !newStatus) return;
+    setUpdating(true);
+    try {
+      const res = await fetch(`/api/reports/${selectedReport.id}/status`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ status: newStatus })
+      });
+      const data = await res.json();
+      if (data.success) {
+        setIsModalOpen(false);
+        fetchReports(); // Refresh data
+      } else {
+        alert(data.message || 'Gagal mengubah status');
+      }
+    } catch (error) {
+      console.error(error);
+      alert('Terjadi kesalahan saat mengupdate status.');
+    } finally {
+      setUpdating(false);
+    }
+  };
 
   const getStatusBadge = (status) => {
     const badges = {
@@ -156,7 +123,7 @@ export function AdminLaporan() {
   };
 
   return (
-    <div className="p-6 md:p-8 max-w-6xl mx-auto space-y-6 animate-in fade-in duration-500">
+    <div className="p-6 md:p-8 max-w-6xl mx-auto space-y-6 animate-in fade-in duration-500 relative">
 
       {/* Page Header */}
       <div>
@@ -176,8 +143,8 @@ export function AdminLaporan() {
             <input
               type="text"
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Cari berdasarkan judul, ID, atau nama pelapor..."
+              onChange={(e) => { setSearchQuery(e.target.value); setCurrentPage(1); }}
+              placeholder="Cari berdasarkan nomor resi..."
               className="w-full pl-10 pr-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium text-gray-700 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#33D6A6]/20 focus:border-[#33D6A6]/50 transition"
             />
           </div>
@@ -202,12 +169,6 @@ export function AdminLaporan() {
               `}
             >
               {filter.label}
-              <span className={`
-                px-1.5 py-0.5 rounded-md text-[10px] font-black
-                ${activeFilter === filter.key ? 'bg-white/20 text-white' : 'bg-gray-200/60 text-gray-500'}
-              `}>
-                {filter.count}
-              </span>
             </button>
           ))}
         </div>
@@ -215,7 +176,6 @@ export function AdminLaporan() {
 
       {/* Reports List */}
       <div className="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden">
-
         {/* Table Header */}
         <div className="hidden md:grid grid-cols-12 gap-4 px-6 py-3 bg-gray-50/80 border-b border-gray-100">
           <div className="col-span-5 flex items-center gap-1.5">
@@ -237,7 +197,12 @@ export function AdminLaporan() {
         </div>
 
         {/* Report Rows */}
-        {filteredReports.length === 0 ? (
+        {loading ? (
+          <div className="flex flex-col items-center justify-center py-16">
+            <div className="w-8 h-8 border-4 border-[#33D6A6] border-t-transparent rounded-full animate-spin"></div>
+            <p className="mt-4 text-sm font-semibold text-gray-500">Memuat laporan...</p>
+          </div>
+        ) : reports.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-16 text-center text-gray-400 space-y-3">
             <div className="w-16 h-16 rounded-full bg-gray-50 flex items-center justify-center text-gray-300 border border-gray-100">
               <FileText size={28} />
@@ -249,7 +214,7 @@ export function AdminLaporan() {
           </div>
         ) : (
           <div className="divide-y divide-gray-50">
-            {filteredReports.map((report) => (
+            {reports.map((report) => (
               <div
                 key={report.id}
                 className="md:grid md:grid-cols-12 md:gap-4 px-6 py-4 hover:bg-gray-50/50 transition-colors cursor-pointer group"
@@ -257,17 +222,19 @@ export function AdminLaporan() {
                 {/* Laporan Info */}
                 <div className="col-span-5 space-y-1.5">
                   <div className="flex items-center gap-2 flex-wrap">
-                    <span className="text-[10px] font-bold text-gray-400 tracking-wider font-mono">{report.id}</span>
+                    <span className="text-[10px] font-bold text-gray-400 tracking-wider font-mono">{report.nomorResi || report.id.substring(0,8)}</span>
                     <span className="w-1 h-1 bg-gray-300 rounded-full" />
-                    <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-md">{report.kategori}</span>
+                    <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-md">{report.kategori_laporan?.namaKategori || '-'}</span>
                   </div>
                   <h3 className="text-sm font-bold text-gray-900 group-hover:text-[#33D6A6] transition-colors line-clamp-1">
                     {report.judul}
                   </h3>
-                  <div className="flex items-center gap-2 text-[10px] text-gray-400">
-                    <MapPin size={10} className="shrink-0" />
-                    <span className="truncate">{report.lokasi}</span>
-                  </div>
+                  {report.lokasi && (
+                    <div className="flex items-center gap-2 text-[10px] text-gray-400">
+                      <MapPin size={10} className="shrink-0" />
+                      <span className="truncate">{report.lokasi}</span>
+                    </div>
+                  )}
                 </div>
 
                 {/* Pelapor */}
@@ -277,11 +244,11 @@ export function AdminLaporan() {
                       <User size={13} />
                     </div>
                     <div>
-                      <p className="text-xs font-semibold text-gray-700 truncate">{report.pelapor}</p>
-                      {report.komentar > 0 && (
+                      <p className="text-xs font-semibold text-gray-700 truncate">{report.users?.username || 'Anonim'}</p>
+                      {report._count?.komentar > 0 && (
                         <span className="inline-flex items-center gap-0.5 text-[10px] text-gray-400 font-medium">
                           <MessageSquare size={9} />
-                          {report.komentar} komentar
+                          {report._count.komentar} komentar
                         </span>
                       )}
                     </div>
@@ -292,7 +259,7 @@ export function AdminLaporan() {
                 <div className="col-span-2 flex items-center mt-2 md:mt-0">
                   <div className="flex items-center gap-1.5 text-xs text-gray-500 font-medium">
                     <Calendar size={12} className="text-gray-400 shrink-0" />
-                    {report.tanggal}
+                    {new Date(report.createdAt).toLocaleDateString('id-ID')}
                   </div>
                 </div>
 
@@ -306,7 +273,11 @@ export function AdminLaporan() {
                   <button className="w-8 h-8 rounded-lg flex items-center justify-center text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition">
                     <Eye size={15} />
                   </button>
-                  <button className="w-8 h-8 rounded-lg flex items-center justify-center text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition">
+                  <button 
+                    onClick={(e) => { e.stopPropagation(); openModal(report); }}
+                    className="w-8 h-8 rounded-lg flex items-center justify-center text-[#33D6A6] hover:bg-[#33D6A6]/10 transition"
+                    title="Ubah Status"
+                  >
                     <MoreHorizontal size={15} />
                   </button>
                 </div>
@@ -318,24 +289,84 @@ export function AdminLaporan() {
         {/* Pagination */}
         <div className="flex items-center justify-between px-6 py-4 border-t border-gray-100 bg-gray-50/50">
           <p className="text-xs text-gray-500 font-medium">
-            Menampilkan <span className="font-bold text-gray-700">{filteredReports.length}</span> dari <span className="font-bold text-gray-700">{allReports.length}</span> laporan
+            Total Laporan: <span className="font-bold text-gray-700">{meta.totalItems || 0}</span>
           </p>
           <div className="flex items-center gap-1.5">
-            <button className="w-8 h-8 rounded-lg flex items-center justify-center text-gray-400 hover:bg-white hover:text-gray-600 border border-transparent hover:border-gray-200 transition disabled:opacity-40 disabled:cursor-not-allowed" disabled>
+            <button 
+              onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+              disabled={currentPage === 1}
+              className="w-8 h-8 rounded-lg flex items-center justify-center text-gray-400 hover:bg-white hover:text-gray-600 border border-transparent hover:border-gray-200 transition disabled:opacity-40 disabled:cursor-not-allowed"
+            >
               <ChevronLeft size={15} />
             </button>
-            <button className="w-8 h-8 rounded-lg flex items-center justify-center text-white bg-[#33D6A6] text-xs font-bold shadow-sm shadow-[#33D6A6]/20">
-              1
-            </button>
-            <button className="w-8 h-8 rounded-lg flex items-center justify-center text-gray-500 hover:bg-white hover:text-gray-700 border border-transparent hover:border-gray-200 transition text-xs font-bold">
-              2
-            </button>
-            <button className="w-8 h-8 rounded-lg flex items-center justify-center text-gray-400 hover:bg-white hover:text-gray-600 border border-transparent hover:border-gray-200 transition">
+            <span className="text-xs font-bold text-gray-700 px-2">
+              Halaman {currentPage} dari {meta.totalPages || 1}
+            </span>
+            <button 
+              onClick={() => setCurrentPage(prev => Math.min(prev + 1, meta.totalPages))}
+              disabled={currentPage === meta.totalPages}
+              className="w-8 h-8 rounded-lg flex items-center justify-center text-gray-400 hover:bg-white hover:text-gray-600 border border-transparent hover:border-gray-200 transition disabled:opacity-40 disabled:cursor-not-allowed"
+            >
               <ChevronRight size={15} />
             </button>
           </div>
         </div>
       </div>
+
+      {/* Modal Ubah Status */}
+      {isModalOpen && selectedReport && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-in fade-in">
+          <div className="bg-white rounded-2xl shadow-xl border border-gray-100 w-full max-w-md overflow-hidden flex flex-col">
+            <div className="flex items-center justify-between p-4 border-b border-gray-50 bg-gray-50/50">
+              <h3 className="font-bold text-gray-900">Update Status Laporan</h3>
+              <button 
+                onClick={() => setIsModalOpen(false)}
+                className="text-gray-400 hover:text-gray-600 transition"
+              >
+                <X size={18} />
+              </button>
+            </div>
+            <div className="p-5 space-y-4">
+              <div>
+                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">Judul Laporan</p>
+                <p className="text-sm font-semibold text-gray-800">{selectedReport.judul}</p>
+              </div>
+              <div>
+                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2">Pilih Status Baru</p>
+                <select 
+                  value={newStatus}
+                  onChange={(e) => setNewStatus(e.target.value)}
+                  className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2.5 text-sm font-medium text-gray-700 focus:outline-none focus:ring-2 focus:ring-[#33D6A6]/30 transition"
+                >
+                  <option value="pending">Menunggu</option>
+                  <option value="diproses">Diproses</option>
+                  <option value="selesai">Selesai</option>
+                  <option value="ditolak">Ditolak</option>
+                </select>
+                <p className="text-[10px] text-gray-500 mt-2">
+                  Mengubah status ke <b>Diproses</b> berarti laporan mulai ditindaklanjuti.
+                </p>
+              </div>
+            </div>
+            <div className="p-4 border-t border-gray-50 flex justify-end gap-2 bg-gray-50/30">
+              <Button 
+                variant="ghost" 
+                onClick={() => setIsModalOpen(false)}
+                className="text-sm font-semibold text-gray-600 hover:bg-gray-100 rounded-xl"
+              >
+                Batal
+              </Button>
+              <Button 
+                onClick={handleUpdateStatus}
+                disabled={updating || selectedReport.status === newStatus}
+                className="bg-[#33D6A6] hover:bg-emerald-500 text-white text-sm font-bold rounded-xl shadow-sm"
+              >
+                {updating ? 'Menyimpan...' : 'Simpan Perubahan'}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

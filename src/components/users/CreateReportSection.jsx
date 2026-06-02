@@ -1,34 +1,136 @@
 "use client";
 
-import { useState } from 'react';
-import { Send, MapPin, AlignLeft, Tag, Info } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
+import { Send, MapPin, AlignLeft, Tag, Info, Image as ImageIcon, Loader2, X } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 
 export function CreateReportSection() {
   const [formData, setFormData] = useState({
     judul: '',
     deskripsi: '',
-    kategori: 'Infrastruktur',
+    kategoriId: '',
     lokasi: '',
-    isAnonymous: false
+    isAnonymous: false,
+    lat: -6.200000,
+    lng: 106.816666,
   });
+  
+  const [file, setFile] = useState(null);
+  const [preview, setPreview] = useState(null);
+  const [categories, setCategories] = useState([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [locationStatus, setLocationStatus] = useState('Mengambil lokasi...');
+  
+  const fileInputRef = useRef(null);
+
+  useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        const res = await fetch('/api/category', { credentials: 'include' });
+        const data = await res.json();
+        if (data.success) {
+          setCategories(data.data);
+          if (data.data.length > 0) {
+            setFormData(prev => ({ ...prev, kategoriId: data.data[0].id }));
+          }
+        }
+      } catch (error) {
+        console.error("Gagal mengambil kategori:", error);
+      }
+    };
+    fetchCategories();
+    
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          setFormData(prev => ({
+            ...prev,
+            lat: position.coords.latitude,
+            lng: position.coords.longitude
+          }));
+          setLocationStatus('Lokasi berhasil didapatkan.');
+        },
+        (error) => {
+          console.warn("Gagal mendapatkan lokasi:", error);
+          setLocationStatus('Akses lokasi ditolak. Menggunakan lokasi default (Jakarta).');
+        }
+      );
+    } else {
+      setLocationStatus('Browser tidak mendukung lokasi.');
+    }
+  }, []);
+
+  const handleFileChange = (e) => {
+    const selectedFile = e.target.files[0];
+    if (selectedFile) {
+      if (selectedFile.size > 5 * 1024 * 1024) {
+        alert("Ukuran file maksimal 5MB!");
+        return;
+      }
+      setFile(selectedFile);
+      const objectUrl = URL.createObjectURL(selectedFile);
+      setPreview(objectUrl);
+    }
+  };
+
+  const removeFile = () => {
+    setFile(null);
+    setPreview(null);
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!file) {
+      alert("Harap lampirkan foto bukti kejadian!");
+      return;
+    }
+    if (!formData.kategoriId) {
+      alert("Kategori laporan wajib dipilih!");
+      return;
+    }
+    
     setIsSubmitting(true);
-    // TODO: Connect to backend API
-    setTimeout(() => {
-      setIsSubmitting(false);
-      alert("Laporan berhasil dikirim!");
-      setFormData({
-        judul: '',
-        deskripsi: '',
-        kategori: 'Infrastruktur',
-        lokasi: '',
-        isAnonymous: false
+    
+    try {
+      const payload = new FormData();
+      payload.append('judul', formData.judul);
+      payload.append('deskripsi', formData.deskripsi);
+      payload.append('kategoriId', formData.kategoriId);
+      payload.append('alamat', formData.lokasi);
+      payload.append('lat', formData.lat);
+      payload.append('lng', formData.lng);
+      payload.append('attachment', file);
+
+      const res = await fetch('/api/reports', {
+        method: 'POST',
+        credentials: 'include',
+        body: payload
       });
-    }, 1500);
+      
+      const data = await res.json();
+      
+      if (data.success) {
+        alert("Laporan berhasil dikirim!");
+        setFormData({
+          judul: '',
+          deskripsi: '',
+          kategoriId: categories.length > 0 ? categories[0].id : '',
+          lokasi: '',
+          isAnonymous: false,
+          lat: formData.lat,
+          lng: formData.lng
+        });
+        removeFile();
+      } else {
+        alert(data.message || "Gagal mengirim laporan.");
+      }
+    } catch (error) {
+      console.error(error);
+      alert("Terjadi kesalahan saat mengirim laporan.");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -41,7 +143,7 @@ export function CreateReportSection() {
             Sampaikan Laporan Anda
           </h2>
           <p className="text-gray-500 max-w-2xl mx-auto font-medium">
-            Tuliskan keluhan, saran, atau aspirasi Anda dengan jelas dan lengkap. Kami menjamin kerahasiaan identitas Anda jika memilih opsi anonim.
+            Tuliskan keluhan, saran, atau aspirasi Anda dengan jelas dan lengkap. Lampirkan foto bukti yang relevan agar laporan dapat segera ditindaklanjuti.
           </p>
         </div>
 
@@ -64,44 +166,26 @@ export function CreateReportSection() {
               />
             </div>
 
-            {/* Isi Laporan */}
-            <div className="space-y-2">
-              <label className="text-sm font-bold text-gray-700 flex items-center gap-2">
-                <AlignLeft size={16} className="text-[#33D6A6]" />
-                Isi Laporan
-              </label>
-              <textarea 
-                required
-                rows={5}
-                value={formData.deskripsi}
-                onChange={(e) => setFormData({...formData, deskripsi: e.target.value})}
-                placeholder="Jelaskan secara detail apa yang terjadi, kapan, dan pihak yang terlibat..." 
-                className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3.5 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#33D6A6]/30 focus:border-[#33D6A6] transition-all resize-y"
-              />
-            </div>
-
+            {/* Kategori dan Lokasi */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {/* Kategori */}
               <div className="space-y-2">
                 <label className="text-sm font-bold text-gray-700 flex items-center gap-2">
                   <Info size={16} className="text-[#33D6A6]" />
-                  Kategori Instansi/Masalah
+                  Kategori
                 </label>
                 <select 
-                  value={formData.kategori}
-                  onChange={(e) => setFormData({...formData, kategori: e.target.value})}
-                  className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3.5 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#33D6A6]/30 focus:border-[#33D6A6] transition-all appearance-none"
+                  required
+                  value={formData.kategoriId}
+                  onChange={(e) => setFormData({...formData, kategoriId: e.target.value})}
+                  className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3.5 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#33D6A6]/30 focus:border-[#33D6A6] transition-all"
                 >
-                  <option value="Infrastruktur">Infrastruktur & Pembangunan</option>
-                  <option value="Kebersihan">Kebersihan & Lingkungan</option>
-                  <option value="Pelayanan Publik">Pelayanan Publik</option>
-                  <option value="Kesehatan">Kesehatan</option>
-                  <option value="Keamanan">Keamanan & Ketertiban</option>
-                  <option value="Lainnya">Lainnya</option>
+                  <option value="" disabled>Pilih Kategori</option>
+                  {categories.map(cat => (
+                    <option key={cat.id} value={cat.id}>{cat.namaKategori}</option>
+                  ))}
                 </select>
               </div>
 
-              {/* Lokasi */}
               <div className="space-y-2">
                 <label className="text-sm font-bold text-gray-700 flex items-center gap-2">
                   <MapPin size={16} className="text-[#33D6A6]" />
@@ -112,10 +196,71 @@ export function CreateReportSection() {
                   required
                   value={formData.lokasi}
                   onChange={(e) => setFormData({...formData, lokasi: e.target.value})}
-                  placeholder="Sebutkan lokasi spesifik..." 
+                  placeholder="Sebutkan patokan jalan atau gedung terdekat..." 
                   className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3.5 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#33D6A6]/30 focus:border-[#33D6A6] transition-all"
                 />
+                <p className="text-[10px] text-gray-400 font-medium ml-1">
+                  {locationStatus}
+                </p>
               </div>
+            </div>
+
+            {/* Isi Laporan */}
+            <div className="space-y-2">
+              <label className="text-sm font-bold text-gray-700 flex items-center gap-2">
+                <AlignLeft size={16} className="text-[#33D6A6]" />
+                Deskripsi Lengkap
+              </label>
+              <textarea 
+                required
+                rows={5}
+                value={formData.deskripsi}
+                onChange={(e) => setFormData({...formData, deskripsi: e.target.value})}
+                placeholder="Jelaskan secara detail apa yang terjadi, kapan, dan informasi penting lainnya..." 
+                className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3.5 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#33D6A6]/30 focus:border-[#33D6A6] transition-all resize-y"
+              />
+            </div>
+
+            {/* Upload Foto */}
+            <div className="space-y-2">
+              <label className="text-sm font-bold text-gray-700 flex items-center gap-2">
+                <ImageIcon size={16} className="text-[#33D6A6]" />
+                Lampiran Foto Bukti <span className="text-red-500">*</span>
+              </label>
+              
+              {!preview ? (
+                <div 
+                  onClick={() => fileInputRef.current?.click()}
+                  className="w-full border-2 border-dashed border-gray-300 rounded-2xl p-8 flex flex-col items-center justify-center text-center cursor-pointer hover:bg-gray-50 hover:border-[#33D6A6]/50 transition-colors"
+                >
+                  <div className="w-12 h-12 rounded-full bg-emerald-50 flex items-center justify-center text-[#33D6A6] mb-3">
+                    <ImageIcon size={24} />
+                  </div>
+                  <p className="text-sm font-bold text-gray-700">Klik untuk mengunggah foto</p>
+                  <p className="text-xs text-gray-400 mt-1">PNG, JPG, JPEG (Maks. 5MB)</p>
+                </div>
+              ) : (
+                <div className="relative w-full h-48 sm:h-64 rounded-2xl overflow-hidden border border-gray-200 group">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={preview} alt="Preview Lampiran" className="w-full h-full object-cover" />
+                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                    <button 
+                      type="button"
+                      onClick={removeFile}
+                      className="bg-white text-red-500 rounded-xl px-4 py-2 text-sm font-bold shadow-lg flex items-center gap-2 hover:bg-red-50 transition"
+                    >
+                      <X size={16} /> Hapus Foto
+                    </button>
+                  </div>
+                </div>
+              )}
+              <input 
+                type="file" 
+                ref={fileInputRef}
+                onChange={handleFileChange}
+                accept="image/png, image/jpeg, image/jpg"
+                className="hidden"
+              />
             </div>
 
             {/* Opsi Anonim & Submit */}
@@ -140,18 +285,20 @@ export function CreateReportSection() {
 
               <Button 
                 type="submit" 
-                disabled={isSubmitting}
+                disabled={isSubmitting || !file}
                 className="bg-[#33D6A6] hover:bg-emerald-500 text-white font-bold px-8 py-6 rounded-xl text-base shadow-lg shadow-[#33D6A6]/30 flex items-center gap-2 transition-all hover:scale-105 active:scale-95 disabled:opacity-70 disabled:hover:scale-100 w-full sm:w-auto"
               >
-                {isSubmitting ? 'Mengirim...' : (
+                {isSubmitting ? (
                   <>
-                    <Send size={18} />
-                    Kirim Laporan
+                    <Loader2 size={18} className="animate-spin" /> Mengirim...
+                  </>
+                ) : (
+                  <>
+                    <Send size={18} /> Kirim Laporan
                   </>
                 )}
               </Button>
             </div>
-
           </form>
         </div>
       </div>

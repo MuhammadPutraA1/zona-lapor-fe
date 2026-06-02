@@ -4,21 +4,9 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import {
-  FileText,
-  Users,
-  Clock,
-  CheckCircle2,
-  Activity,
-  AlertCircle,
-  ArrowRight,
-  ArrowUpRight,
-  TrendingUp,
-  Calendar,
-  Eye,
-  BarChart3,
-  MessageSquare,
-  ShieldCheck,
-  Zap
+  FileText, Users, Clock, CheckCircle2, Activity,
+  AlertCircle, ArrowRight, ArrowUpRight, TrendingUp,
+  Calendar, Eye, BarChart3, MessageSquare, ShieldCheck, Zap
 } from 'lucide-react';
 
 export function AdminDashboard() {
@@ -28,65 +16,19 @@ export function AdminDashboard() {
   const [greeting, setGreeting] = useState("Selamat Datang");
   const [currentDate, setCurrentDate] = useState("");
 
-  // Mock data - akan diganti dengan API nanti
-  const stats = {
-    totalLaporan: 156,
-    laporanBaru: 12,
-    sedangDiproses: 34,
-    selesai: 98,
-    ditolak: 12,
-    totalPengguna: 342,
-    penggunaBaru: 18,
-  };
+  const [stats, setStats] = useState({
+    totalLaporan: 0,
+    laporanBaru: 0,
+    sedangDiproses: 0,
+    selesai: 0,
+    ditolak: 0,
+    totalPengguna: 0,
+    penggunaBaru: 0,
+  });
 
-  const recentReports = [
-    {
-      id: "RPT-2026-0156",
-      judul: "Jalan Rusak dan Berlubang di Jl. Merdeka",
-      pelapor: "Ahmad Rizki",
-      kategori: "Infrastruktur",
-      status: "pending",
-      tanggal: "2026-05-23",
-      komentar: 3,
-    },
-    {
-      id: "RPT-2026-0155",
-      judul: "Lampu PJU Padam di Area RW 04",
-      pelapor: "Siti Nurhaliza",
-      kategori: "Fasilitas Umum",
-      status: "diproses",
-      tanggal: "2026-05-22",
-      komentar: 7,
-    },
-    {
-      id: "RPT-2026-0154",
-      judul: "Penumpukan Sampah Liar di Bantaran Sungai",
-      pelapor: "Budi Setiawan",
-      kategori: "Kebersihan",
-      status: "selesai",
-      tanggal: "2026-05-21",
-      komentar: 12,
-    },
-    {
-      id: "RPT-2026-0153",
-      judul: "Pohon Tumbang Menghalangi Jalan",
-      pelapor: "Dewi Lestari",
-      kategori: "Infrastruktur",
-      status: "diproses",
-      tanggal: "2026-05-21",
-      komentar: 5,
-    },
-    {
-      id: "RPT-2026-0152",
-      judul: "Dugaan Pungutan Liar di Kantor Kelurahan",
-      pelapor: "Anonymous",
-      kategori: "Pelayanan Publik",
-      status: "pending",
-      tanggal: "2026-05-20",
-      komentar: 0,
-    },
-  ];
+  const [recentReports, setRecentReports] = useState([]);
 
+  // Top kategori statis untuk sementara
   const topCategories = [
     { nama: "Infrastruktur", jumlah: 48, persen: 31, warna: "bg-blue-500" },
     { nama: "Kebersihan", jumlah: 35, persen: 22, warna: "bg-emerald-500" },
@@ -108,7 +50,6 @@ export function AdminDashboard() {
     const cached = sessionStorage.getItem('user_session');
     if (cached) {
       setUserData(JSON.parse(cached));
-      setLoading(false);
     }
 
     const fetchMe = async () => {
@@ -123,6 +64,7 @@ export function AdminDashboard() {
         if (data.success) {
           setUserData(data.user);
           sessionStorage.setItem('user_session', JSON.stringify(data.user));
+          fetchDashboardData();
         } else {
           sessionStorage.removeItem('user_session');
           router.push('/auth/login');
@@ -130,10 +72,40 @@ export function AdminDashboard() {
       } catch {
         sessionStorage.removeItem('user_session');
         router.push('/auth/login');
+      } 
+    };
+
+    const fetchDashboardData = async () => {
+      try {
+        const [
+          allRes, pendingRes, diprosesRes, selesaiRes, ditolakRes, usersRes
+        ] = await Promise.all([
+          fetch('/api/reports?limit=5', { credentials: 'include' }).then(res => res.json()).catch(()=>({})),
+          fetch('/api/reports?status=pending&limit=1', { credentials: 'include' }).then(res => res.json()).catch(()=>({})),
+          fetch('/api/reports?status=diproses&limit=1', { credentials: 'include' }).then(res => res.json()).catch(()=>({})),
+          fetch('/api/reports?status=selesai&limit=1', { credentials: 'include' }).then(res => res.json()).catch(()=>({})),
+          fetch('/api/reports?status=ditolak&limit=1', { credentials: 'include' }).then(res => res.json()).catch(()=>({})),
+          fetch('/api/users?limit=1', { credentials: 'include' }).then(res => res.json()).catch(()=>({}))
+        ]);
+
+        if (allRes.success) setRecentReports(allRes.data);
+        
+        setStats({
+          totalLaporan: allRes.meta?.totalItems || 0,
+          laporanBaru: pendingRes.meta?.totalItems || 0,
+          sedangDiproses: diprosesRes.meta?.totalItems || 0,
+          selesai: selesaiRes.meta?.totalItems || 0,
+          ditolak: ditolakRes.meta?.totalItems || 0,
+          totalPengguna: usersRes.meta?.totalItems || 0,
+          penggunaBaru: 0
+        });
+      } catch (error) {
+        console.error("Gagal memuat data dashboard:", error);
       } finally {
         setLoading(false);
       }
     };
+
     fetchMe();
   }, [router]);
 
@@ -178,9 +150,10 @@ export function AdminDashboard() {
     return badges[status] || null;
   };
 
+  const basePath = userData?.role === 'admin' ? '/dashboard/admin' : '/dashboard/petugas';
+
   return (
     <div className="p-6 md:p-8 max-w-6xl mx-auto space-y-8 animate-in fade-in duration-500">
-
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div>
@@ -197,7 +170,7 @@ export function AdminDashboard() {
         </div>
         <div className="flex items-center gap-2">
           <Link
-            href="/admin/laporan"
+            href={`${basePath}/laporan`}
             className="inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-tr from-[#33D6A6] to-emerald-400 hover:from-emerald-500 hover:to-emerald-400 text-white text-sm font-bold rounded-xl shadow-md shadow-[#33D6A6]/20 hover:shadow-lg hover:shadow-[#33D6A6]/30 transition-all duration-200 hover:scale-[1.02]"
           >
             <Eye size={16} />
@@ -208,7 +181,6 @@ export function AdminDashboard() {
 
       {/* Stats Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
-        {/* Total Laporan */}
         <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm flex flex-col justify-between hover:shadow-md transition-shadow">
           <div className="flex items-center justify-between">
             <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">Total Laporan</span>
@@ -227,7 +199,6 @@ export function AdminDashboard() {
           </div>
         </div>
 
-        {/* Menunggu */}
         <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm flex flex-col justify-between hover:shadow-md transition-shadow">
           <div className="flex items-center justify-between">
             <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">Menunggu</span>
@@ -241,7 +212,6 @@ export function AdminDashboard() {
           </div>
         </div>
 
-        {/* Diproses */}
         <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm flex flex-col justify-between hover:shadow-md transition-shadow">
           <div className="flex items-center justify-between">
             <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">Diproses</span>
@@ -255,7 +225,6 @@ export function AdminDashboard() {
           </div>
         </div>
 
-        {/* Selesai */}
         <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm flex flex-col justify-between hover:shadow-md transition-shadow">
           <div className="flex items-center justify-between">
             <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">Selesai</span>
@@ -267,7 +236,7 @@ export function AdminDashboard() {
             <h3 className="text-2xl md:text-3xl font-black text-emerald-600 leading-none">{stats.selesai}</h3>
             <div className="flex items-center gap-1.5 mt-1.5">
               <span className="inline-flex items-center gap-0.5 text-[10px] font-bold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded-md">
-                <TrendingUp size={10} /> 63%
+                <TrendingUp size={10} /> {stats.totalLaporan > 0 ? Math.round((stats.selesai/stats.totalLaporan)*100) : 0}%
               </span>
               <span className="text-[10px] text-gray-400 font-medium">tingkat penyelesaian</span>
             </div>
@@ -275,10 +244,7 @@ export function AdminDashboard() {
         </div>
       </div>
 
-      {/* Main Content Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-
-        {/* Left: Recent Reports */}
         <div className="lg:col-span-2 space-y-6">
           <div className="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden">
             <div className="flex items-center justify-between p-6 border-b border-gray-100">
@@ -288,14 +254,14 @@ export function AdminDashboard() {
                 </div>
                 <h2 className="text-lg font-bold text-gray-900">Laporan Terbaru</h2>
               </div>
-              <Link href="/admin/laporan" className="text-xs font-bold text-[#33D6A6] hover:text-emerald-500 transition-colors flex items-center gap-1">
+              <Link href={`${basePath}/laporan`} className="text-xs font-bold text-[#33D6A6] hover:text-emerald-500 transition-colors flex items-center gap-1">
                 Lihat Semua
                 <ArrowRight size={14} />
               </Link>
             </div>
 
             <div className="divide-y divide-gray-50">
-              {recentReports.map((report) => (
+              {recentReports.length > 0 ? recentReports.map((report) => (
                 <div
                   key={report.id}
                   className="px-6 py-4 hover:bg-gray-50/50 transition-colors cursor-pointer group"
@@ -303,23 +269,25 @@ export function AdminDashboard() {
                   <div className="flex items-start justify-between gap-4">
                     <div className="min-w-0 flex-1 space-y-1.5">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <span className="text-[10px] font-bold text-gray-400 tracking-wider font-mono">{report.id}</span>
+                        <span className="text-[10px] font-bold text-gray-400 tracking-wider font-mono">{report.nomorResi || report.id.substring(0,8)}</span>
                         <span className="w-1 h-1 bg-gray-300 rounded-full" />
-                        <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-md capitalize">{report.kategori}</span>
+                        <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-md capitalize">
+                          {report.kategori_laporan?.namaKategori || 'Kategori'}
+                        </span>
                         <span className="w-1 h-1 bg-gray-300 rounded-full" />
-                        <span className="text-[10px] text-gray-400 font-medium">{report.tanggal}</span>
+                        <span className="text-[10px] text-gray-400 font-medium">{new Date(report.createdAt).toLocaleDateString('id-ID')}</span>
                       </div>
                       <h3 className="text-sm font-bold text-gray-900 group-hover:text-[#33D6A6] transition-colors truncate">
                         {report.judul}
                       </h3>
                       <div className="flex items-center gap-3">
                         <span className="text-[11px] text-gray-400 font-medium">
-                          oleh <span className="text-gray-600 font-semibold">{report.pelapor}</span>
+                          oleh <span className="text-gray-600 font-semibold">{report.users?.username || 'Anonim'}</span>
                         </span>
-                        {report.komentar > 0 && (
+                        {report._count?.komentar > 0 && (
                           <span className="inline-flex items-center gap-1 text-[10px] text-gray-400 font-medium">
                             <MessageSquare size={10} />
-                            {report.komentar}
+                            {report._count.komentar}
                           </span>
                         )}
                       </div>
@@ -329,11 +297,12 @@ export function AdminDashboard() {
                     </div>
                   </div>
                 </div>
-              ))}
+              )) : (
+                <div className="p-6 text-center text-sm text-gray-400">Belum ada laporan terbaru.</div>
+              )}
             </div>
           </div>
 
-          {/* Quick Stats Bar */}
           <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
             <div className="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm flex items-center gap-3.5">
               <div className="w-10 h-10 rounded-xl bg-violet-50 flex items-center justify-center text-violet-500 border border-violet-100/50 shrink-0">
@@ -369,8 +338,6 @@ export function AdminDashboard() {
 
         {/* Right: Sidebar Widgets */}
         <div className="lg:col-span-1 space-y-6">
-
-          {/* Status Distribution */}
           <div className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm space-y-5">
             <div className="flex items-center gap-2.5">
               <div className="w-8 h-8 rounded-lg bg-emerald-50 flex items-center justify-center">
@@ -383,46 +350,45 @@ export function AdminDashboard() {
               <div className="space-y-2">
                 <div className="flex items-center justify-between text-xs">
                   <span className="font-semibold text-gray-600">Menunggu</span>
-                  <span className="font-bold text-amber-600">{Math.round((stats.laporanBaru / stats.totalLaporan) * 100)}%</span>
+                  <span className="font-bold text-amber-600">{stats.totalLaporan > 0 ? Math.round((stats.laporanBaru / stats.totalLaporan) * 100) : 0}%</span>
                 </div>
                 <div className="w-full h-2 bg-gray-100 rounded-full overflow-hidden">
-                  <div className="h-full bg-gradient-to-r from-amber-400 to-amber-500 rounded-full transition-all duration-1000" style={{ width: `${(stats.laporanBaru / stats.totalLaporan) * 100}%` }} />
+                  <div className="h-full bg-gradient-to-r from-amber-400 to-amber-500 rounded-full transition-all duration-1000" style={{ width: `${stats.totalLaporan > 0 ? (stats.laporanBaru / stats.totalLaporan) * 100 : 0}%` }} />
                 </div>
               </div>
 
               <div className="space-y-2">
                 <div className="flex items-center justify-between text-xs">
                   <span className="font-semibold text-gray-600">Diproses</span>
-                  <span className="font-bold text-blue-600">{Math.round((stats.sedangDiproses / stats.totalLaporan) * 100)}%</span>
+                  <span className="font-bold text-blue-600">{stats.totalLaporan > 0 ? Math.round((stats.sedangDiproses / stats.totalLaporan) * 100) : 0}%</span>
                 </div>
                 <div className="w-full h-2 bg-gray-100 rounded-full overflow-hidden">
-                  <div className="h-full bg-gradient-to-r from-blue-400 to-blue-500 rounded-full transition-all duration-1000" style={{ width: `${(stats.sedangDiproses / stats.totalLaporan) * 100}%` }} />
+                  <div className="h-full bg-gradient-to-r from-blue-400 to-blue-500 rounded-full transition-all duration-1000" style={{ width: `${stats.totalLaporan > 0 ? (stats.sedangDiproses / stats.totalLaporan) * 100 : 0}%` }} />
                 </div>
               </div>
 
               <div className="space-y-2">
                 <div className="flex items-center justify-between text-xs">
                   <span className="font-semibold text-gray-600">Selesai</span>
-                  <span className="font-bold text-emerald-600">{Math.round((stats.selesai / stats.totalLaporan) * 100)}%</span>
+                  <span className="font-bold text-emerald-600">{stats.totalLaporan > 0 ? Math.round((stats.selesai / stats.totalLaporan) * 100) : 0}%</span>
                 </div>
                 <div className="w-full h-2 bg-gray-100 rounded-full overflow-hidden">
-                  <div className="h-full bg-gradient-to-r from-[#33D6A6] to-emerald-500 rounded-full transition-all duration-1000" style={{ width: `${(stats.selesai / stats.totalLaporan) * 100}%` }} />
+                  <div className="h-full bg-gradient-to-r from-[#33D6A6] to-emerald-500 rounded-full transition-all duration-1000" style={{ width: `${stats.totalLaporan > 0 ? (stats.selesai / stats.totalLaporan) * 100 : 0}%` }} />
                 </div>
               </div>
 
               <div className="space-y-2">
                 <div className="flex items-center justify-between text-xs">
                   <span className="font-semibold text-gray-600">Ditolak</span>
-                  <span className="font-bold text-rose-600">{Math.round((stats.ditolak / stats.totalLaporan) * 100)}%</span>
+                  <span className="font-bold text-rose-600">{stats.totalLaporan > 0 ? Math.round((stats.ditolak / stats.totalLaporan) * 100) : 0}%</span>
                 </div>
                 <div className="w-full h-2 bg-gray-100 rounded-full overflow-hidden">
-                  <div className="h-full bg-gradient-to-r from-rose-400 to-rose-500 rounded-full transition-all duration-1000" style={{ width: `${(stats.ditolak / stats.totalLaporan) * 100}%` }} />
+                  <div className="h-full bg-gradient-to-r from-rose-400 to-rose-500 rounded-full transition-all duration-1000" style={{ width: `${stats.totalLaporan > 0 ? (stats.ditolak / stats.totalLaporan) * 100 : 0}%` }} />
                 </div>
               </div>
             </div>
           </div>
 
-          {/* Top Categories */}
           <div className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm space-y-5">
             <div className="flex items-center gap-2.5">
               <div className="w-8 h-8 rounded-lg bg-emerald-50 flex items-center justify-center">
@@ -430,7 +396,6 @@ export function AdminDashboard() {
               </div>
               <h2 className="text-lg font-bold text-gray-900">Top Kategori</h2>
             </div>
-
             <div className="space-y-3">
               {topCategories.map((cat, i) => (
                 <div key={cat.nama} className="flex items-center gap-3 group cursor-pointer">
@@ -447,7 +412,6 @@ export function AdminDashboard() {
             </div>
           </div>
 
-          {/* Admin Access Info */}
           <div className="bg-gradient-to-tr from-slate-900 to-slate-800 text-white p-6 rounded-3xl shadow-lg border border-slate-700 space-y-4">
             <div className="w-10 h-10 rounded-xl bg-slate-700/50 flex items-center justify-center text-[#33D6A6]">
               <ShieldCheck size={20} />
@@ -458,7 +422,7 @@ export function AdminDashboard() {
                 Anda memiliki akses penuh untuk mengelola semua laporan, memverifikasi pengaduan, dan memberikan tanggapan resmi kepada pelapor.
               </p>
             </div>
-            <Link href="/admin/laporan" className="inline-flex items-center gap-1.5 text-xs font-bold text-[#33D6A6] hover:text-emerald-300 transition-colors">
+            <Link href={`${basePath}/laporan`} className="inline-flex items-center gap-1.5 text-xs font-bold text-[#33D6A6] hover:text-emerald-300 transition-colors">
               Kelola Laporan
               <ArrowRight size={12} />
             </Link>
