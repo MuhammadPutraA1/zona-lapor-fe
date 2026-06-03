@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from "next/link"; 
 import { useRouter } from 'next/navigation';
-import { User, LogOut, LayoutDashboard, ShieldCheck, ChevronDown, Clock } from 'lucide-react';
+import { User, LogOut, LayoutDashboard, ShieldCheck, ChevronDown, Clock, UserRound } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 
 export function UserNavbar() {
@@ -133,6 +133,15 @@ export function UserNavbar() {
                       Admin Panel
                     </Link>
                   )}
+
+                  <Link
+                    href="/users/profile"
+                    className="flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-50 transition-colors"
+                    onClick={() => setIsDropdownOpen(false)}
+                  >
+                    <UserRound size={16} className="text-gray-400" />
+                    Profil Saya
+                  </Link>
 
                   <button 
                     onClick={handleLogout}

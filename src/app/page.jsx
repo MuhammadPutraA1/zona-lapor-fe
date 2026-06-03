@@ -2,18 +2,19 @@ import Navbar from "@/components/layout/Navbar"
 import HeroSection from "@/components/landing/HeroSection"
 import HowItWorksSection from "@/components/landing/HowItWorksSection"
 import FeatureSection from "@/components/landing/FeatureSection"
+import RecentReportsSection from "@/components/landing/RecentReportsSection"
 import Footer from "@/components/layout/Footer"
 
 export default function HomePage() {
   return (
     <main className="min-h-screen bg-[#FAFAFA] flex flex-col font-sans overflow-x-hidden">
-      
+
       {/* Top Section with Hero */}
       <div className="bg-[#FAFAFA] pb-10">
         <div className="max-w-7xl mx-auto">
-          <Navbar/>
+          <Navbar />
           <div className="mt-8">
-            <HeroSection/>
+            <HeroSection />
           </div>
         </div>
       </div>
@@ -24,8 +25,11 @@ export default function HomePage() {
       {/* Bento Box Features Section */}
       <FeatureSection />
 
+      {/* Laporan Terbaru Section */}
+      <RecentReportsSection />
+
       {/* Footer */}
-      <Footer/>
+      <Footer />
 
     </main>
   )

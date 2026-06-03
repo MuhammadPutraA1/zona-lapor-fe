@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
 import {
   FileText, Search, Clock, CheckCircle2, Activity,
   AlertCircle, Eye, MessageSquare, ChevronLeft,
@@ -10,6 +11,7 @@ import {
 import { Button } from '@/components/ui/button';
 
 export function AdminLaporan() {
+  const router = useRouter();
   const [reports, setReports] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
@@ -217,6 +219,7 @@ export function AdminLaporan() {
             {reports.map((report) => (
               <div
                 key={report.id}
+                onClick={() => router.push(`/laporan/${report.id}`)}
                 className="md:grid md:grid-cols-12 md:gap-4 px-6 py-4 hover:bg-gray-50/50 transition-colors cursor-pointer group"
               >
                 {/* Laporan Info */}

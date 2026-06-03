@@ -8,10 +8,10 @@ export default function Navbar() {
       {/* LOGO */}
       <h1 className="text-3xl font-black tracking-tight">
         <span className="text-[#111827]">
-          Ruang
+          zona
         </span>
         <span className="text-[#33D6A6]">
-          Lapor
+          lapor
         </span>
       </h1>
 

@@ -2,6 +2,7 @@ import { UserNavbar } from "@/components/layout/UserNavbar"
 import HeroSection from "@/components/landing/HeroSection"
 import { CreateReportSection } from "@/components/users/CreateReportSection"
 import HowItWorksSection from "@/components/landing/HowItWorksSection"
+import RecentReportsSection from "@/components/landing/RecentReportsSection"
 import Footer from "@/components/layout/Footer"
 
 export const metadata = {
@@ -17,9 +18,9 @@ export default function UsersPage() {
         <div className="max-w-7xl mx-auto">
           <UserNavbar />
           <div className="mt-8">
-            <HeroSection 
-              buttonText="Buat Laporan Sekarang" 
-              buttonLink="#buat-laporan" 
+            <HeroSection
+              buttonText="Buat Laporan Sekarang"
+              buttonLink="#buat-laporan"
             />
           </div>
         </div>
@@ -32,6 +33,9 @@ export default function UsersPage() {
 
       {/* How It Works Section */}
       <HowItWorksSection />
+
+      {/* Laporan Terbaru Section */}
+      <RecentReportsSection />
 
       {/* Footer */}
       <Footer />
