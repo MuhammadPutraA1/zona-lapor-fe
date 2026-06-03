@@ -89,15 +89,13 @@ export function AdminSidebar() {
       {
         label: 'OVERVIEW',
         items: [
-          { name: 'Dashboard', href: basePath, icon: LayoutDashboard },
-          { name: 'Statistik', href: `${basePath}/statistik`, icon: BarChart3 },
+          { name: 'Dashboard', href: basePath, icon: LayoutDashboard }
         ]
       },
       {
         label: 'KELOLA DATA',
         items: [
           { name: 'Semua Laporan', href: `${basePath}/laporan`, icon: FileText },
-          { name: 'Kategori', href: `${basePath}/kategori`, icon: Tag },
           { name: 'Data Pengguna', href: `${basePath}/pengguna`, icon: Users },
         ]
       }
@@ -183,7 +181,7 @@ export function AdminSidebar() {
                 <span className="text-2xl font-black text-gray-900 tracking-tight block leading-none">
                   zona<span className="text-[#33D6A6]">lapor</span>
                 </span>
-                <span className="text-[10px] font-semibold text-gray-400 tracking-wider uppercase">Admin Panel</span>
+                <span className="text-[10px] font-semibold text-gray-400 tracking-wider uppercase">Panel</span>
               </div>
             </Link>
 

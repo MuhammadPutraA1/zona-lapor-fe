@@ -16,6 +16,8 @@ export function AdminLaporan() {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [activeFilter, setActiveFilter] = useState('semua');
+  const [activeCategory, setActiveCategory] = useState('');
+  const [categories, setCategories] = useState([]);
   const [currentPage, setCurrentPage] = useState(1);
   const [meta, setMeta] = useState({ totalPages: 1, totalItems: 0 });
 
@@ -37,6 +39,7 @@ export function AdminLaporan() {
     try {
       let url = `/api/reports?page=${currentPage}&limit=10`;
       if (activeFilter !== 'semua') url += `&status=${activeFilter}`;
+      if (activeCategory) url += `&kategoriId=${activeCategory}`;
       
       // Catatan: Jika ingin mencari berdasarkan resi, kita akan panggil search, tapi 
       // kita gunakan query biasa dulu jika backend searchByNomorResi khusus /search
@@ -56,7 +59,22 @@ export function AdminLaporan() {
     } finally {
       setLoading(false);
     }
-  }, [currentPage, activeFilter, searchQuery]);
+  }, [currentPage, activeFilter, activeCategory, searchQuery]);
+
+  useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        const res = await fetch('/api/category', { credentials: 'include' });
+        const data = await res.json();
+        if (data.success) {
+          setCategories(data.data);
+        }
+      } catch (error) {
+        console.error("Gagal mengambil kategori:", error);
+      }
+    };
+    fetchCategories();
+  }, []);
 
   useEffect(() => {
     const timer = setTimeout(() => fetchReports(), 500);
@@ -150,10 +168,19 @@ export function AdminLaporan() {
               className="w-full pl-10 pr-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium text-gray-700 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#33D6A6]/20 focus:border-[#33D6A6]/50 transition"
             />
           </div>
-          <button className="inline-flex items-center gap-2 px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm font-semibold text-gray-600 hover:bg-gray-100 transition shrink-0">
-            <SlidersHorizontal size={15} />
-            Filter Lanjutan
-          </button>
+          <div className="relative shrink-0 w-full md:w-auto">
+            <SlidersHorizontal size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
+            <select
+              value={activeCategory}
+              onChange={(e) => { setActiveCategory(e.target.value); setCurrentPage(1); }}
+              className="w-full md:w-48 pl-9 pr-8 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm font-semibold text-gray-600 appearance-none focus:outline-none focus:ring-2 focus:ring-[#33D6A6]/20 cursor-pointer"
+            >
+              <option value="">Semua Kategori</option>
+              {categories.map((cat) => (
+                <option key={cat.id} value={cat.id}>{cat.namaKategori}</option>
+              ))}
+            </select>
+          </div>
         </div>
 
         {/* Filter Tabs */}
