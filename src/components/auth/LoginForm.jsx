@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { AlertCircle, CheckCircle2, Loader2 } from 'lucide-react';
+import { AlertCircle, CheckCircle2, Loader2, ArrowLeft } from 'lucide-react';
 
 export function LoginForm() {
   const router = useRouter();
@@ -75,8 +75,12 @@ export function LoginForm() {
   };
 
   return (
-    <div className="max-w-md w-full bg-white p-8 rounded-xl shadow-lg border border-gray-100">
-      <div className="text-center mb-8">
+    <div className="max-w-md w-full bg-white p-8 rounded-xl shadow-lg border border-gray-100 relative">
+      <Link href="/" className="absolute top-6 left-6 p-2 -ml-2 -mt-2 text-gray-400 hover:bg-gray-50 hover:text-[#33D6A6] rounded-full transition-all" title="Kembali ke Beranda">
+        <ArrowLeft size={20} />
+      </Link>
+      
+      <div className="text-center mb-8 mt-2">
         <h2 className="text-2xl font-bold text-black">Masuk</h2>
         <p className="text-gray-500 text-sm mt-2">
           Silakan masuk untuk mulai menggunakan layanan kami.
