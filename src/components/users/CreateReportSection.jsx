@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { Send, MapPin, AlignLeft, Tag, Info, Image as ImageIcon, Loader2, X } from 'lucide-react';
 import { Button } from "@/components/ui/button";
+import toast from 'react-hot-toast';
 
 export function CreateReportSection() {
   const [formData, setFormData] = useState({
@@ -63,10 +64,21 @@ export function CreateReportSection() {
   const handleFileChange = (e) => {
     const selectedFile = e.target.files[0];
     if (selectedFile) {
-      if (selectedFile.size > 5 * 1024 * 1024) {
-        alert("Ukuran file maksimal 5MB!");
+      // Validasi ukuran (Maks 10MB sesuai backend)
+      if (selectedFile.size > 10 * 1024 * 1024) {
+        toast.error("Ukuran file maksimal 10MB!");
+        e.target.value = '';
         return;
       }
+      
+      // Validasi ekstensi (MIME type)
+      const allowedTypes = ['image/jpeg', 'image/png', 'video/mp4', 'video/x-matroska'];
+      if (!allowedTypes.includes(selectedFile.type)) {
+        toast.error("Format file tidak didukung! Harap unggah PNG, JPG, MP4, atau MKV.");
+        e.target.value = '';
+        return;
+      }
+
       setFile(selectedFile);
       const objectUrl = URL.createObjectURL(selectedFile);
       setPreview(objectUrl);
@@ -82,11 +94,11 @@ export function CreateReportSection() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!file) {
-      alert("Harap lampirkan foto bukti kejadian!");
+      toast.error("Harap lampirkan foto bukti kejadian!");
       return;
     }
     if (!formData.kategoriId) {
-      alert("Kategori laporan wajib dipilih!");
+      toast.error("Kategori laporan wajib dipilih!");
       return;
     }
     
@@ -111,7 +123,7 @@ export function CreateReportSection() {
       const data = await res.json();
       
       if (data.success) {
-        alert("Laporan berhasil dikirim!");
+        toast.success("Laporan berhasil dikirim!");
         setFormData({
           judul: '',
           deskripsi: '',
@@ -123,11 +135,11 @@ export function CreateReportSection() {
         });
         removeFile();
       } else {
-        alert(data.message || "Gagal mengirim laporan.");
+        toast.error(data.message || "Gagal mengirim laporan.");
       }
     } catch (error) {
       console.error(error);
-      alert("Terjadi kesalahan saat mengirim laporan.");
+      toast.error("Terjadi kesalahan saat mengirim laporan.");
     } finally {
       setIsSubmitting(false);
     }
@@ -236,20 +248,24 @@ export function CreateReportSection() {
                   <div className="w-12 h-12 rounded-full bg-emerald-50 flex items-center justify-center text-[#33D6A6] mb-3">
                     <ImageIcon size={24} />
                   </div>
-                  <p className="text-sm font-bold text-gray-700">Klik untuk mengunggah foto</p>
-                  <p className="text-xs text-gray-400 mt-1">PNG, JPG, JPEG (Maks. 5MB)</p>
+                  <p className="text-sm font-bold text-gray-700">Klik untuk mengunggah bukti</p>
+                  <p className="text-xs text-gray-400 mt-1">PNG, JPG, MP4, MKV (Maks. 10MB)</p>
                 </div>
               ) : (
-                <div className="relative w-full h-48 sm:h-64 rounded-2xl overflow-hidden border border-gray-200 group">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={preview} alt="Preview Lampiran" className="w-full h-full object-cover" />
-                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                <div className="relative w-full h-48 sm:h-64 rounded-2xl overflow-hidden border border-gray-200 group bg-black flex justify-center">
+                  {file?.type?.startsWith('video/') ? (
+                    <video src={preview} controls className="w-full h-full object-contain" />
+                  ) : (
+                    /* eslint-disable-next-line @next/next/no-img-element */
+                    <img src={preview} alt="Preview Lampiran" className="w-full h-full object-cover" />
+                  )}
+                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center pointer-events-none">
                     <button 
                       type="button"
-                      onClick={removeFile}
-                      className="bg-white text-red-500 rounded-xl px-4 py-2 text-sm font-bold shadow-lg flex items-center gap-2 hover:bg-red-50 transition"
+                      onClick={(e) => { e.stopPropagation(); removeFile(); }}
+                      className="bg-white text-red-500 rounded-xl px-4 py-2 text-sm font-bold shadow-lg flex items-center gap-2 hover:bg-red-50 transition pointer-events-auto"
                     >
-                      <X size={16} /> Hapus Foto
+                      <X size={16} /> Hapus File
                     </button>
                   </div>
                 </div>
@@ -258,7 +274,7 @@ export function CreateReportSection() {
                 type="file" 
                 ref={fileInputRef}
                 onChange={handleFileChange}
-                accept="image/png, image/jpeg, image/jpg"
+                accept="image/png, image/jpeg, video/mp4, video/x-matroska"
                 className="hidden"
               />
             </div>
