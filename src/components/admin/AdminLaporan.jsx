@@ -9,6 +9,7 @@ import {
   ArrowUpDown, MapPin, Calendar, User, X
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import toast from 'react-hot-toast';
 
 export function AdminLaporan() {
   const router = useRouter();
@@ -25,6 +26,7 @@ export function AdminLaporan() {
   const [selectedReport, setSelectedReport] = useState(null);
   const [newStatus, setNewStatus] = useState('');
   const [updating, setUpdating] = useState(false);
+  const [alasanPenolakan, setAlasanPenolakan] = useState('');
 
   const filters = [
     { key: 'semua', label: 'Semua' },
@@ -89,6 +91,12 @@ export function AdminLaporan() {
 
   const handleUpdateStatus = async () => {
     if (!selectedReport || !newStatus) return;
+
+    if (newStatus === 'ditolak' && !alasanPenolakan.trim()) {
+      toast.error('Alasan penolakan wajib diisi!');
+      return;
+    }
+
     setUpdating(true);
     try {
       const res = await fetch(`/api/reports/${selectedReport.id}/status`, {
@@ -99,14 +107,27 @@ export function AdminLaporan() {
       });
       const data = await res.json();
       if (data.success) {
+        
+        // Kirim tanggapan penolakan jika status ditolak
+        if (newStatus === 'ditolak') {
+          await fetch(`/api/reports/${selectedReport.id}/tanggapan`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify({ isi_tanggapan: `[Alasan Penolakan]: ${alasanPenolakan}` })
+          });
+        }
+
         setIsModalOpen(false);
+        setAlasanPenolakan(''); // reset
         fetchReports(); // Refresh data
+        toast.success(`Status berhasil diubah menjadi ${newStatus}!`);
       } else {
-        alert(data.message || 'Gagal mengubah status');
+        toast.error(data.message || 'Gagal mengubah status');
       }
     } catch (error) {
       console.error(error);
-      alert('Terjadi kesalahan saat mengupdate status.');
+      toast.error('Terjadi kesalahan saat mengupdate status.');
     } finally {
       setUpdating(false);
     }
@@ -304,9 +325,14 @@ export function AdminLaporan() {
                     <Eye size={15} />
                   </button>
                   <button 
-                    onClick={(e) => { e.stopPropagation(); openModal(report); }}
-                    className="w-8 h-8 rounded-lg flex items-center justify-center text-[#33D6A6] hover:bg-[#33D6A6]/10 transition"
-                    title="Ubah Status"
+                    onClick={(e) => { e.stopPropagation(); if (report.status !== 'ditolak') openModal(report); }}
+                    disabled={report.status === 'ditolak'}
+                    className={`w-8 h-8 rounded-lg flex items-center justify-center transition ${
+                      report.status === 'ditolak' 
+                        ? 'text-gray-300 cursor-not-allowed bg-transparent hover:bg-transparent' 
+                        : 'text-[#33D6A6] hover:bg-[#33D6A6]/10'
+                    }`}
+                    title={report.status === 'ditolak' ? 'Laporan Ditolak (Terkunci)' : 'Ubah Status'}
                   >
                     <MoreHorizontal size={15} />
                   </button>
@@ -377,6 +403,19 @@ export function AdminLaporan() {
                   Mengubah status ke <b>Diproses</b> berarti laporan mulai ditindaklanjuti.
                 </p>
               </div>
+              
+              {newStatus === 'ditolak' && (
+                <div className="animate-in fade-in slide-in-from-top-2">
+                  <p className="text-[10px] font-bold text-rose-500 uppercase tracking-wider mb-2">Alasan Penolakan <span className="text-rose-500">*</span></p>
+                  <textarea
+                    value={alasanPenolakan}
+                    onChange={(e) => setAlasanPenolakan(e.target.value)}
+                    placeholder="Berikan alasan mengapa laporan ini ditolak..."
+                    className="w-full h-24 bg-rose-50/50 border border-rose-200 rounded-xl px-3 py-2.5 text-sm text-gray-700 placeholder:text-rose-300 focus:outline-none focus:ring-2 focus:ring-rose-400/50 transition resize-none"
+                    required
+                  ></textarea>
+                </div>
+              )}
             </div>
             <div className="p-4 border-t border-gray-50 flex justify-end gap-2 bg-gray-50/30">
               <Button 

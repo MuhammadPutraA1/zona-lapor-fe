@@ -7,6 +7,7 @@ import Navbar from "@/components/layout/Navbar";
 import { UserNavbar } from "@/components/layout/UserNavbar";
 import Footer from "@/components/layout/Footer";
 import CommentSection from "@/components/landing/CommentSection";
+import toast from 'react-hot-toast';
 
 export default function LaporanDetail() {
   const { id } = useParams();
@@ -63,6 +64,34 @@ export default function LaporanDetail() {
     return name.substring(0, 2) + "*".repeat(name.length - 2);
   };
 
+  const handleTanggapanFileChange = (e) => {
+    const selectedFile = e.target.files[0];
+    if (selectedFile) {
+      // Validasi ukuran (Maks 10MB)
+      if (selectedFile.size > 10 * 1024 * 1024) {
+        toast.error("Ukuran file maksimal 10MB!");
+        e.target.value = '';
+        return;
+      }
+      
+      // Validasi ekstensi
+      const allowedTypes = ['image/jpeg', 'image/png', 'video/mp4', 'video/x-matroska'];
+      if (!allowedTypes.includes(selectedFile.type)) {
+        toast.error("Format file tidak didukung! Harap unggah PNG, JPG, MP4, atau MKV.");
+        e.target.value = '';
+        return;
+      }
+      setTanggapanFile(selectedFile);
+    } else {
+      setTanggapanFile(null);
+    }
+  };
+
+  const isVideo = (url) => {
+    if (!url) return false;
+    return url.match(/\.(mp4|mkv|webm)($|\?)/i);
+  };
+
   // ── Handlers ─────────────────────────────────────────────
   const handlePostTanggapan = async (e) => {
     e.preventDefault();
@@ -83,12 +112,13 @@ export default function LaporanDetail() {
         setReport({ ...report, tanggapan: [...(report.tanggapan || []), result.data] });
         setNewTanggapan("");
         setTanggapanFile(null);
+        toast.success("Tanggapan berhasil dikirim!");
       } else {
-        alert(result.message || "Gagal mengirim tanggapan.");
+        toast.error(result.message || "Gagal mengirim tanggapan.");
       }
     } catch (err) {
       console.error(err);
-      alert("Terjadi kesalahan sistem saat mengirim tanggapan.");
+      toast.error("Terjadi kesalahan sistem saat mengirim tanggapan.");
     } finally {
       setSubmittingTanggapan(false);
     }
@@ -111,12 +141,13 @@ export default function LaporanDetail() {
         setReport({ ...report, tanggapan: report.tanggapan.map((t) => (t.id === tanggapanId ? result.data : t)) });
         setEditingTanggapanId(null);
         setEditTanggapanText("");
+        toast.success("Tanggapan berhasil diperbarui!");
       } else {
-        alert(result.message || "Gagal memperbarui tanggapan.");
+        toast.error(result.message || "Gagal memperbarui tanggapan.");
       }
     } catch (error) {
       console.error("Gagal mengupdate tanggapan:", error);
-      alert("Terjadi kesalahan jaringan saat mengupdate tanggapan.");
+      toast.error("Terjadi kesalahan jaringan saat mengupdate tanggapan.");
     } finally {
       setIsUpdatingTanggapan(false);
     }
@@ -132,12 +163,13 @@ export default function LaporanDetail() {
       const result = await res.json();
       if (res.ok && result.success) {
         setReport({ ...report, tanggapan: report.tanggapan.filter((t) => t.id !== tanggapanId) });
+        toast.success("Tanggapan berhasil dihapus!");
       } else {
-        alert(result.message || "Gagal menghapus tanggapan.");
+        toast.error(result.message || "Gagal menghapus tanggapan.");
       }
     } catch (error) {
       console.error("Gagal menghapus tanggapan:", error);
-      alert("Terjadi kesalahan jaringan saat menghapus tanggapan.");
+      toast.error("Terjadi kesalahan jaringan saat menghapus tanggapan.");
     }
   };
 
@@ -242,14 +274,22 @@ export default function LaporanDetail() {
               </h1>
             </div>
 
-            {/* Gambar */}
+            {/* Gambar / Video */}
             {report.mediaUrls && report.mediaUrls.length > 0 && (
-              <div className="w-full relative bg-gray-100 flex justify-center mb-3 border-t border-b border-gray-100">
-                <img
-                  src={report.mediaUrls[0]}
-                  alt={report.judul}
-                  className="w-full h-[250px] sm:h-[350px] md:h-[400px] object-cover"
-                />
+              <div className="w-full relative bg-black flex justify-center mb-3 border-t border-b border-gray-100">
+                {isVideo(report.mediaUrls[0]) ? (
+                  <video
+                    src={report.mediaUrls[0]}
+                    controls
+                    className="w-full max-h-[500px] object-contain"
+                  />
+                ) : (
+                  <img
+                    src={report.mediaUrls[0]}
+                    alt={report.judul}
+                    className="w-full max-h-[500px] object-contain bg-gray-100"
+                  />
+                )}
               </div>
             )}
 
@@ -349,11 +389,19 @@ export default function LaporanDetail() {
                     {/* Lampiran Admin */}
                     {tgp.mediaUrls && tgp.mediaUrls.length > 0 && (
                       <div className="mb-3">
-                        <img
-                          src={tgp.mediaUrls[0]}
-                          alt="Lampiran Tanggapan"
-                          className="rounded-2xl max-h-[200px] w-auto object-cover border border-gray-200 shadow-sm"
-                        />
+                        {isVideo(tgp.mediaUrls[0]) ? (
+                          <video
+                            src={tgp.mediaUrls[0]}
+                            controls
+                            className="rounded-2xl max-h-[300px] w-auto object-contain border border-gray-200 shadow-sm bg-black"
+                          />
+                        ) : (
+                          <img
+                            src={tgp.mediaUrls[0]}
+                            alt="Lampiran Tanggapan"
+                            className="rounded-2xl max-h-[200px] w-auto object-cover border border-gray-200 shadow-sm"
+                          />
+                        )}
                       </div>
                     )}
 
@@ -430,6 +478,13 @@ export default function LaporanDetail() {
                   Dashboard.
                 </p>
               </div>
+            ) : report.status === "ditolak" ? (
+              <div className="bg-red-50 border border-red-200 sm:rounded-xl p-4 mb-6 flex items-start gap-3 shadow-sm">
+                <AlertTriangle size={18} className="text-red-600 mt-0.5 shrink-0" />
+                <p className="text-sm text-red-800">
+                  Laporan ini telah <b>Ditolak</b>. Laporan telah dikunci dan Anda tidak dapat menambahkan tanggapan resmi lagi.
+                </p>
+              </div>
             ) : (
               <div className="bg-white border border-gray-200 shadow-sm sm:rounded-xl p-4 sm:p-5 mb-6">
                 <h3 className="font-bold text-gray-900 mb-3 flex items-center gap-2">
@@ -446,9 +501,10 @@ export default function LaporanDetail() {
                   <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
                     <input
                       type="file"
-                      accept="image/*"
-                      onChange={(e) => setTanggapanFile(e.target.files[0])}
-                      className="text-xs text-gray-500 file:mr-3 file:py-1.5 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-bold file:bg-[#33D6A6]/10 file:text-[#33D6A6] hover:file:bg-[#33D6A6]/20 transition-colors"
+                      accept="image/png, image/jpeg, video/mp4, video/x-matroska"
+                      onChange={handleTanggapanFileChange}
+                      className="text-xs text-gray-500 file:mr-3 file:py-1.5 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-bold file:bg-[#33D6A6]/10 file:text-[#33D6A6] hover:file:bg-[#33D6A6]/20 transition-colors max-w-[200px] sm:max-w-xs"
+                      title="PNG, JPG, MP4, MKV (Maks 10MB)"
                     />
                     <button
                       type="submit"
@@ -465,7 +521,7 @@ export default function LaporanDetail() {
 
           {/* ── Komentar Publik ── */}
           <div className="bg-white sm:rounded-[4px] border-gray-300 sm:border overflow-hidden">
-            <CommentSection laporanId={report.id} />
+            <CommentSection laporanId={report.id} status={report.status} />
           </div>
 
         </div>

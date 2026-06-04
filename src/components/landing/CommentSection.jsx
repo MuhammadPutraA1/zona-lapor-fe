@@ -2,8 +2,9 @@
 import { useEffect, useState } from "react";
 import { Send, UserCircle2, Edit2, Trash2, X, Check } from "lucide-react";
 import { useRouter } from "next/navigation";
+import toast from 'react-hot-toast';
 
-export default function CommentSection({ laporanId }) {
+export default function CommentSection({ laporanId, status }) {
   const router = useRouter();
   const [comments, setComments] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -66,12 +67,13 @@ export default function CommentSection({ laporanId }) {
       if (res.ok && result.success) {
         setComments([...comments, result.data]);
         setNewComment("");
+        toast.success("Komentar berhasil dikirim!");
       } else {
-        alert(result.message || "Gagal mengirim komentar");
+        toast.error(result.message || "Gagal mengirim komentar");
       }
     } catch (err) {
       console.error("Gagal mengirim komentar:", err);
-      alert("Terjadi kesalahan. Coba lagi.");
+      toast.error("Terjadi kesalahan. Coba lagi.");
     } finally {
       setSubmitting(false);
     }
@@ -90,13 +92,14 @@ export default function CommentSection({ laporanId }) {
 
       if (res.ok) {
         setComments(comments.filter(c => c.id !== commentId));
+        toast.success("Komentar berhasil dihapus!");
       } else {
         const result = await res.json();
-        alert(result.message || "Gagal menghapus komentar.");
+        toast.error(result.message || "Gagal menghapus komentar.");
       }
     } catch (err) {
       console.error("Gagal menghapus komentar:", err);
-      alert("Terjadi kesalahan sistem saat menghapus komentar.");
+      toast.error("Terjadi kesalahan sistem saat menghapus komentar.");
     }
   };
 
@@ -125,13 +128,14 @@ export default function CommentSection({ laporanId }) {
         const result = await res.json();
         setComments(comments.map(c => c.id === commentId ? { ...c, body: result.data.body } : c));
         cancelEdit();
+        toast.success("Komentar berhasil diperbarui!");
       } else {
         const result = await res.json();
-        alert(result.message || "Gagal mengedit komentar.");
+        toast.error(result.message || "Gagal mengedit komentar.");
       }
     } catch (err) {
       console.error("Gagal mengedit komentar:", err);
-      alert("Terjadi kesalahan sistem saat mengedit komentar.");
+      toast.error("Terjadi kesalahan sistem saat mengedit komentar.");
     }
   };
 
@@ -153,31 +157,41 @@ export default function CommentSection({ laporanId }) {
         </h3>
         
         {user ? (
-          <form onSubmit={handlePostComment} className="flex flex-col gap-2">
-            <div className="flex gap-2">
-              <textarea
-                value={newComment}
-                onChange={(e) => setNewComment(e.target.value)}
-                placeholder="Apa pendapat Anda?"
-                className="w-full bg-white border border-gray-300 rounded-[4px] px-4 py-2.5 text-[14px] text-[#1c1c1c] focus:outline-none focus:border-black resize-none min-h-[90px] transition-colors"
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" && !e.shiftKey) {
-                    e.preventDefault();
-                    handlePostComment(e);
-                  }
-                }}
-              />
+          status === 'ditolak' ? (
+            <div className="flex items-center justify-between border border-red-200 rounded-[4px] p-3 bg-red-50 mb-3">
+              <p className="text-sm text-red-700 font-medium">Laporan ini telah ditolak. Kolom komentar ditutup.</p>
             </div>
-            <div className="flex justify-end">
-              <button
-                type="submit"
-                disabled={!newComment.trim() || submitting}
-                className="px-5 py-1.5 bg-black text-white text-sm font-bold rounded-full hover:bg-gray-800 disabled:opacity-50 transition-colors"
-              >
-                Komentar
-              </button>
+          ) : status === 'pending' && (user.role === 'admin' || user.role === 'petugas') ? (
+            <div className="flex items-center justify-between border border-amber-200 rounded-[4px] p-3 bg-amber-50 mb-3">
+              <p className="text-sm text-amber-700 font-medium">Ubah status laporan menjadi diproses terlebih dahulu untuk ikut berkomentar.</p>
             </div>
-          </form>
+          ) : (
+            <form onSubmit={handlePostComment} className="flex flex-col gap-2">
+              <div className="flex gap-2">
+                <textarea
+                  value={newComment}
+                  onChange={(e) => setNewComment(e.target.value)}
+                  placeholder="Apa pendapat Anda?"
+                  className="w-full bg-white border border-gray-300 rounded-[4px] px-4 py-2.5 text-[14px] text-[#1c1c1c] focus:outline-none focus:border-black resize-none min-h-[90px] transition-colors"
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && !e.shiftKey) {
+                      e.preventDefault();
+                      handlePostComment(e);
+                    }
+                  }}
+                />
+              </div>
+              <div className="flex justify-end">
+                <button
+                  type="submit"
+                  disabled={!newComment.trim() || submitting}
+                  className="px-5 py-1.5 bg-black text-white text-sm font-bold rounded-full hover:bg-gray-800 disabled:opacity-50 transition-colors"
+                >
+                  Komentar
+                </button>
+              </div>
+            </form>
+          )
         ) : (
           <div className="flex items-center justify-between border border-gray-300 rounded-[4px] p-3 bg-gray-50/50">
             <p className="text-sm text-gray-500 font-medium">Log in untuk berdiskusi</p>
