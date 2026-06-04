@@ -28,14 +28,7 @@ export function AdminDashboard() {
 
   const [recentReports, setRecentReports] = useState([]);
 
-  // Top kategori statis untuk sementara
-  const topCategories = [
-    { nama: "Infrastruktur", jumlah: 48, persen: 31, warna: "bg-blue-500" },
-    { nama: "Kebersihan", jumlah: 35, persen: 22, warna: "bg-emerald-500" },
-    { nama: "Fasilitas Umum", jumlah: 28, persen: 18, warna: "bg-amber-500" },
-    { nama: "Pelayanan Publik", jumlah: 24, persen: 15, warna: "bg-violet-500" },
-    { nama: "Keamanan", jumlah: 21, persen: 14, warna: "bg-rose-500" },
-  ];
+
 
   useEffect(() => {
     const hour = new Date().getHours();
@@ -72,7 +65,7 @@ export function AdminDashboard() {
       } catch {
         sessionStorage.removeItem('user_session');
         router.push('/auth/login');
-      } 
+      }
     };
 
     const fetchDashboardData = async () => {
@@ -80,16 +73,16 @@ export function AdminDashboard() {
         const [
           allRes, pendingRes, diprosesRes, selesaiRes, ditolakRes, usersRes
         ] = await Promise.all([
-          fetch('/api/reports?limit=5', { credentials: 'include' }).then(res => res.json()).catch(()=>({})),
-          fetch('/api/reports?status=pending&limit=1', { credentials: 'include' }).then(res => res.json()).catch(()=>({})),
-          fetch('/api/reports?status=diproses&limit=1', { credentials: 'include' }).then(res => res.json()).catch(()=>({})),
-          fetch('/api/reports?status=selesai&limit=1', { credentials: 'include' }).then(res => res.json()).catch(()=>({})),
-          fetch('/api/reports?status=ditolak&limit=1', { credentials: 'include' }).then(res => res.json()).catch(()=>({})),
-          fetch('/api/users?limit=1', { credentials: 'include' }).then(res => res.json()).catch(()=>({}))
+          fetch('/api/reports?limit=5', { credentials: 'include' }).then(res => res.json()).catch(() => ({})),
+          fetch('/api/reports?status=pending&limit=1', { credentials: 'include' }).then(res => res.json()).catch(() => ({})),
+          fetch('/api/reports?status=diproses&limit=1', { credentials: 'include' }).then(res => res.json()).catch(() => ({})),
+          fetch('/api/reports?status=selesai&limit=1', { credentials: 'include' }).then(res => res.json()).catch(() => ({})),
+          fetch('/api/reports?status=ditolak&limit=1', { credentials: 'include' }).then(res => res.json()).catch(() => ({})),
+          fetch('/api/users?limit=1', { credentials: 'include' }).then(res => res.json()).catch(() => ({}))
         ]);
 
         if (allRes.success) setRecentReports(allRes.data);
-        
+
         setStats({
           totalLaporan: allRes.meta?.totalItems || 0,
           laporanBaru: pendingRes.meta?.totalItems || 0,
@@ -236,7 +229,7 @@ export function AdminDashboard() {
             <h3 className="text-2xl md:text-3xl font-black text-emerald-600 leading-none">{stats.selesai}</h3>
             <div className="flex items-center gap-1.5 mt-1.5">
               <span className="inline-flex items-center gap-0.5 text-[10px] font-bold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded-md">
-                <TrendingUp size={10} /> {stats.totalLaporan > 0 ? Math.round((stats.selesai/stats.totalLaporan)*100) : 0}%
+                <TrendingUp size={10} /> {stats.totalLaporan > 0 ? Math.round((stats.selesai / stats.totalLaporan) * 100) : 0}%
               </span>
               <span className="text-[10px] text-gray-400 font-medium">tingkat penyelesaian</span>
             </div>
@@ -264,12 +257,13 @@ export function AdminDashboard() {
               {recentReports.length > 0 ? recentReports.map((report) => (
                 <div
                   key={report.id}
+                  onClick={() => router.push(`/laporan/${report.id}`)}
                   className="px-6 py-4 hover:bg-gray-50/50 transition-colors cursor-pointer group"
                 >
                   <div className="flex items-start justify-between gap-4">
                     <div className="min-w-0 flex-1 space-y-1.5">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <span className="text-[10px] font-bold text-gray-400 tracking-wider font-mono">{report.nomorResi || report.id.substring(0,8)}</span>
+                        <span className="text-[10px] font-bold text-gray-400 tracking-wider font-mono">{report.nomorResi || report.id.substring(0, 8)}</span>
                         <span className="w-1 h-1 bg-gray-300 rounded-full" />
                         <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-md capitalize">
                           {report.kategori_laporan?.namaKategori || 'Kategori'}
@@ -389,44 +383,6 @@ export function AdminDashboard() {
             </div>
           </div>
 
-          <div className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm space-y-5">
-            <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-lg bg-emerald-50 flex items-center justify-center">
-                <FileText size={16} className="text-[#33D6A6]" />
-              </div>
-              <h2 className="text-lg font-bold text-gray-900">Top Kategori</h2>
-            </div>
-            <div className="space-y-3">
-              {topCategories.map((cat, i) => (
-                <div key={cat.nama} className="flex items-center gap-3 group cursor-pointer">
-                  <span className="text-[11px] font-bold text-gray-400 w-5 text-center">{i + 1}</span>
-                  <div className={`w-2 h-2 rounded-full ${cat.warna} shrink-0`} />
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs font-semibold text-gray-700 group-hover:text-[#33D6A6] transition-colors truncate">{cat.nama}</span>
-                      <span className="text-[11px] font-bold text-gray-500 shrink-0 ml-2">{cat.jumlah}</span>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          <div className="bg-gradient-to-tr from-slate-900 to-slate-800 text-white p-6 rounded-3xl shadow-lg border border-slate-700 space-y-4">
-            <div className="w-10 h-10 rounded-xl bg-slate-700/50 flex items-center justify-center text-[#33D6A6]">
-              <ShieldCheck size={20} />
-            </div>
-            <div>
-              <h3 className="font-bold text-sm">Akses {userData?.role === 'admin' ? 'Administrator' : 'Petugas'}</h3>
-              <p className="text-xs text-slate-300 mt-1 leading-relaxed">
-                Anda memiliki akses penuh untuk mengelola semua laporan, memverifikasi pengaduan, dan memberikan tanggapan resmi kepada pelapor.
-              </p>
-            </div>
-            <Link href={`${basePath}/laporan`} className="inline-flex items-center gap-1.5 text-xs font-bold text-[#33D6A6] hover:text-emerald-300 transition-colors">
-              Kelola Laporan
-              <ArrowRight size={12} />
-            </Link>
-          </div>
         </div>
       </div>
     </div>
