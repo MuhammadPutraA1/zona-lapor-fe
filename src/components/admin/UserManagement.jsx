@@ -4,9 +4,10 @@ import { useState, useEffect } from "react";
 import { 
   Search, Edit2, Trash2, ShieldAlert, CheckCircle2, 
   XCircle, UserCircle2, ShieldCheck, Mail, Phone,
-  RefreshCcw, AlertTriangle, UserX, Loader2
+  RefreshCcw, UserX, Loader2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import toast from 'react-hot-toast';
 
 export default function UserManagement({ roleTarget = "user", viewerRole = "admin" }) {
   const [users, setUsers] = useState([]);
@@ -74,12 +75,13 @@ export default function UserManagement({ roleTarget = "user", viewerRole = "admi
         setUsers(users.map(u => u.id === editingUser.id ? { ...u, ...data.data } : u));
         setIsEditModalOpen(false);
         setEditingUser(null);
+        toast.success("Perubahan berhasil disimpan!");
       } else {
-        alert(data.message || "Gagal menyimpan perubahan.");
+        toast.error(data.message || "Gagal menyimpan perubahan.");
       }
     } catch (error) {
       console.error("Gagal update:", error);
-      alert("Terjadi kesalahan jaringan.");
+      toast.error("Terjadi kesalahan jaringan.");
     } finally {
       setIsSaving(false);
     }
@@ -95,11 +97,13 @@ export default function UserManagement({ roleTarget = "user", viewerRole = "admi
       const data = await res.json();
       if (data.success) {
         setUsers(users.map(u => u.id === user.id ? { ...u, isActive: false } : u));
+        toast.success("Pengguna berhasil dinonaktifkan!");
       } else {
-        alert(data.message || "Gagal menonaktifkan pengguna.");
+        toast.error(data.message || "Gagal menonaktifkan pengguna.");
       }
     } catch (error) {
       console.error("Gagal delete:", error);
+      toast.error("Terjadi kesalahan sistem saat menonaktifkan.");
     }
   };
 
@@ -113,11 +117,13 @@ export default function UserManagement({ roleTarget = "user", viewerRole = "admi
       const data = await res.json();
       if (data.success) {
         setUsers(users.map(u => u.id === user.id ? { ...u, isActive: true } : u));
+        toast.success("Pengguna berhasil diaktifkan kembali!");
       } else {
-        alert(data.message || "Gagal mengaktifkan kembali.");
+        toast.error(data.message || "Gagal mengaktifkan kembali.");
       }
     } catch (error) {
       console.error("Gagal restore:", error);
+      toast.error("Terjadi kesalahan sistem saat mengaktifkan kembali.");
     }
   };
 
@@ -358,7 +364,6 @@ export default function UserManagement({ roleTarget = "user", viewerRole = "admi
                     >
                       <option value="user">User (Masyarakat)</option>
                       <option value="petugas">Petugas</option>
-                      <option value="admin">Admin</option>
                     </select>
                   </div>
                 </div>
