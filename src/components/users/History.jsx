@@ -13,12 +13,16 @@ export function History() {
   const [initialLoad, setInitialLoad] = useState(true);
   const [page, setPage] = useState(1);
   const [meta, setMeta] = useState(null);
+  const [statusFilter, setStatusFilter] = useState("semua");
 
   useEffect(() => {
     const fetchMyReports = async () => {
       setLoading(true);
       try {
-        const url = `/api/reports/me?limit=6&sort=desc&page=${page}`;
+        let url = `/api/reports/me?limit=6&sort=desc&page=${page}`;
+        if (statusFilter !== "semua") {
+          url += `&status=${statusFilter}`;
+        }
 
         const res = await fetch(url, {
           credentials: 'include'
@@ -45,7 +49,22 @@ export function History() {
     };
 
     fetchMyReports();
-  }, [page, router]);
+  }, [page, statusFilter, router]);
+
+  const handleFilterChange = (status) => {
+    if (statusFilter !== status) {
+      setStatusFilter(status);
+      setPage(1);
+    }
+  };
+
+  const filterOptions = [
+    { value: 'semua', label: 'Semua' },
+    { value: 'pending', label: 'Pending' },
+    { value: 'diproses', label: 'Diproses' },
+    { value: 'selesai', label: 'Selesai' },
+    { value: 'ditolak', label: 'Ditolak' }
+  ];
 
   // Fungsi Helper Warna Status
   const getStatusColor = (status) => {
@@ -54,6 +73,7 @@ export function History() {
       case 'diproses': return 'bg-blue-100 text-blue-700 border-blue-200';
       case 'selesai': return 'bg-emerald-100 text-emerald-700 border-emerald-200';
       case 'ditolak': return 'bg-red-100 text-red-700 border-red-200';
+      case 'dihapus': return 'bg-gray-800 text-white border-gray-900';
       default: return 'bg-gray-100 text-gray-700 border-gray-200';
     }
   };
@@ -84,8 +104,29 @@ export function History() {
         >
           <ArrowLeft size={16} /> Kembali
         </button>
-        <h1 className="text-2xl sm:text-3xl font-black text-gray-900 tracking-tight">Riwayat Pengaduan</h1>
-        <p className="text-gray-500 text-sm mt-1 font-medium">Pantau daftar dan status laporan yang pernah Anda kirimkan.</p>
+        <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-2">
+          <div>
+            <h1 className="text-2xl sm:text-3xl font-black text-gray-900 tracking-tight">Riwayat Pengaduan</h1>
+            <p className="text-gray-500 text-sm mt-1 font-medium mb-4 md:mb-0">Pantau daftar dan status laporan yang pernah Anda kirimkan.</p>
+          </div>
+        </div>
+
+        {/* Filter Status (Pills) */}
+        <div className="flex items-center gap-2 overflow-x-auto pb-2 mb-2 scrollbar-hide">
+          {filterOptions.map((opt) => (
+            <button
+              key={opt.value}
+              onClick={() => handleFilterChange(opt.value)}
+              className={`whitespace-nowrap px-4 py-1.5 rounded-full text-sm font-bold transition-all border ${
+                statusFilter === opt.value
+                  ? "bg-[#33D6A6] text-white border-[#33D6A6] shadow-sm"
+                  : "bg-white text-gray-500 border-gray-200 hover:border-[#33D6A6] hover:text-[#33D6A6]"
+              }`}
+            >
+              {opt.label}
+            </button>
+          ))}
+        </div>
       </div>
 
       {reports.length === 0 && page === 1 ? (
@@ -94,17 +135,35 @@ export function History() {
             <FileText size={32} className="text-gray-300" />
           </div>
           <h3 className="text-xl font-bold text-gray-800 mb-2">Belum ada laporan</h3>
-          <p className="text-gray-500 text-sm max-w-sm mb-6">Anda belum pernah membuat laporan pengaduan apapun. Mulai suarakan aspirasi Anda sekarang!</p>
-          <Link href="/dashboard/lapor">
-            <button className="px-6 py-2.5 bg-[#33D6A6] hover:bg-[#2bc295] text-white font-bold rounded-xl transition-all shadow-sm shadow-[#33d6a6]/30">
-              Buat Laporan Baru
+          <p className="text-gray-500 text-sm max-w-sm mb-6">
+            {statusFilter === 'semua' 
+              ? "Anda belum pernah membuat laporan pengaduan apapun. Mulai suarakan aspirasi Anda sekarang!" 
+              : `Tidak ditemukan laporan dengan status "${filterOptions.find(o => o.value === statusFilter)?.label}".`}
+          </p>
+          {statusFilter === 'semua' ? (
+            <Link href="/dashboard/lapor">
+              <button className="px-6 py-2.5 bg-[#33D6A6] hover:bg-[#2bc295] text-white font-bold rounded-xl transition-all shadow-sm shadow-[#33d6a6]/30">
+                Buat Laporan Baru
+              </button>
+            </Link>
+          ) : (
+            <button 
+              onClick={() => handleFilterChange('semua')}
+              className="px-6 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold rounded-xl transition-all shadow-sm"
+            >
+              Lihat Semua Laporan
             </button>
-          </Link>
+          )}
         </div>
       ) : (
         <div className="flex flex-col gap-4">
-          {reports.map((report, index) => (
-            <Link href={`/laporan/${report.id}`} key={report.id}>
+          {reports.map((report, index) => {
+            const isDeleted = report.status === 'ditolak' && report.tanggapan?.[0]?.isi_tanggapan?.startsWith('[LAPORAN DIHAPUS]');
+            const displayStatus = isDeleted ? 'dihapus' : report.status;
+            const alasanHapus = isDeleted ? report.tanggapan[0].isi_tanggapan.replace('[LAPORAN DIHAPUS]:', '').trim() : null;
+
+            return (
+              <Link href={`/laporan/${report.id}`} key={report.id}>
               <motion.div
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -126,8 +185,8 @@ export function History() {
                   )}
                   {/* Status Badge Over Image (Mobile) */}
                   <div className="absolute top-2 right-2 sm:hidden">
-                    <span className={`px-2 py-1 rounded text-[10px] font-bold uppercase tracking-wider border shadow-sm ${getStatusColor(report.status)}`}>
-                      {report.status}
+                    <span className={`px-2 py-1 rounded text-[10px] font-bold uppercase tracking-wider border shadow-sm ${getStatusColor(displayStatus)}`}>
+                      {displayStatus}
                     </span>
                   </div>
                 </div>
@@ -142,16 +201,23 @@ export function History() {
                         {report.nomorResi}
                       </div>
                       <div className="hidden sm:block shrink-0">
-                        <span className={`px-2 py-0.5 rounded border text-[10px] font-bold uppercase tracking-wider ${getStatusColor(report.status)}`}>
-                          {report.status}
+                        <span className={`px-2 py-0.5 rounded border text-[10px] font-bold uppercase tracking-wider ${getStatusColor(displayStatus)}`}>
+                          {displayStatus}
                         </span>
                       </div>
                     </div>
 
                     {/* Judul */}
-                    <h3 className="text-[#1c1c1c] font-bold text-base sm:text-lg line-clamp-1 mb-1 group-hover:text-[#33D6A6] transition-colors">
+                    <h3 className={`font-bold text-base sm:text-lg line-clamp-1 mb-1 transition-colors ${isDeleted ? 'text-gray-400 line-through' : 'text-[#1c1c1c] group-hover:text-[#33D6A6]'}`}>
                       {report.judul}
                     </h3>
+                    
+                    {isDeleted && (
+                      <div className="mt-1 mb-2 p-2.5 bg-red-50/80 border border-red-100 rounded-lg text-xs text-red-800">
+                        <span className="font-bold block mb-0.5">Alasan Penghapusan:</span>
+                        {alasanHapus}
+                      </div>
+                    )}
                   </div>
 
                   {/* Meta Info Bawah */}
@@ -172,7 +238,7 @@ export function History() {
                 </div>
               </motion.div>
             </Link>
-          ))}
+          )})}
         </div>
       )}
 
