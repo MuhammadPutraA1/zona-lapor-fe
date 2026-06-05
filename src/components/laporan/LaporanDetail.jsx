@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { ArrowLeft, ShieldCheck, AlertTriangle, Edit2, Trash2 } from "lucide-react";
+import { ArrowLeft, ShieldCheck, AlertTriangle, Edit2, Trash2, X } from "lucide-react";
 import Navbar from "@/components/layout/Navbar";
 import { UserNavbar } from "@/components/layout/UserNavbar";
 import Footer from "@/components/layout/Footer";
@@ -27,6 +27,10 @@ export default function LaporanDetail() {
   const [editingTanggapanId, setEditingTanggapanId] = useState(null);
   const [editTanggapanText, setEditTanggapanText] = useState("");
   const [isUpdatingTanggapan, setIsUpdatingTanggapan] = useState(false);
+
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [alasanHapus, setAlasanHapus] = useState('');
+  const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
     const checkLogin = () => {
@@ -173,6 +177,43 @@ export default function LaporanDetail() {
     }
   };
 
+  const handleDeleteReport = async () => {
+    if (!alasanHapus.trim()) {
+      toast.error('Alasan hapus wajib diisi!');
+      return;
+    }
+    setIsDeleting(true);
+    try {
+      const resStatus = await fetch(`/api/reports/${id}/status`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ status: "ditolak" })
+      });
+      const dataStatus = await resStatus.json();
+
+      if (dataStatus.success) {
+        await fetch(`/api/reports/${id}/tanggapan`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify({ isi_tanggapan: `[LAPORAN DIHAPUS]: ${alasanHapus}` })
+        });
+        
+        toast.success("Laporan berhasil dihapus (disembunyikan)!");
+        setIsDeleteModalOpen(false);
+        router.back();
+      } else {
+        toast.error(dataStatus.message || "Gagal menghapus laporan.");
+      }
+    } catch (error) {
+      console.error("Gagal menghapus laporan:", error);
+      toast.error("Terjadi kesalahan jaringan saat menghapus laporan.");
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
   // ── Navbar helper ─────────────────────────────────────────
   const NavbarWrapper = () => (
     <div className="bg-white border-b border-gray-100 shadow-sm z-10">
@@ -265,6 +306,17 @@ export default function LaporanDetail() {
                   {report.status}
                 </span>
               </div>
+
+              {user && (user.role === 'admin' || user.id === report.userId) && (
+                <button
+                  onClick={() => setIsDeleteModalOpen(true)}
+                  className="ml-auto text-red-400 hover:text-red-600 transition-colors shrink-0 p-1.5 rounded-lg hover:bg-red-50 flex items-center gap-1.5 border border-transparent hover:border-red-100"
+                  title="Hapus Laporan"
+                >
+                  <Trash2 size={16} />
+                  <span className="hidden sm:inline text-xs font-bold">Hapus</span>
+                </button>
+              )}
             </div>
 
             {/* Judul */}
@@ -405,61 +457,6 @@ export default function LaporanDetail() {
                       </div>
                     )}
 
-                    {/* Embed Laporan (Twitter/X Quote Style) */}
-
-<div
-  onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
-  className="mt-3 border border-gray-200 rounded-2xl p-3 hover:bg-gray-50 transition cursor-pointer"
->
-  <div className="flex gap-3">
-
-
-{/* Thumbnail */}
-{report.mediaUrls?.length > 0 && (
-  <div className="w-20 h-20 rounded-xl overflow-hidden shrink-0 border border-gray-200">
-    <img
-      src={report.mediaUrls[0]}
-      alt={report.judul}
-      className="w-full h-full object-cover"
-    />
-  </div>
-)}
-
-{/* Content */}
-<div className="flex-1 min-w-0">
-
-  <div className="flex items-center gap-2 mb-1">
-    <div className="w-5 h-5 rounded-full bg-gray-200 flex items-center justify-center text-[10px] font-bold text-gray-600 uppercase">
-      {report.users?.username?.charAt(0) || "?"}
-    </div>
-
-    <span className="text-xs font-semibold text-gray-900 truncate">
-      {maskName(report.users?.username)}
-    </span>
-
-    <span className="text-xs text-gray-500">
-      @{maskName(report.users?.username)
-        .toLowerCase()
-        .replace(/[^a-z0-9]/g, "")}
-    </span>
-  </div>
-
-  <h4 className="text-sm font-semibold text-gray-900 line-clamp-1">
-    {report.judul}
-  </h4>
-
-  <p className="text-xs text-gray-500 mt-1 line-clamp-2">
-    {report.deskripsi}
-  </p>
-</div>
-
-
-  </div>
-
-
-
-                      
-                    </div>
 
                   </div>
                 </div>
@@ -526,6 +523,61 @@ export default function LaporanDetail() {
 
         </div>
       </main>
+
+      {/* Modal Hapus Laporan */}
+      {isDeleteModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-in fade-in">
+          <div className="bg-white rounded-2xl shadow-xl border border-gray-100 w-full max-w-md overflow-hidden flex flex-col">
+            <div className="flex items-center justify-between p-4 border-b border-gray-50 bg-red-50/50">
+              <h3 className="font-bold text-red-700 flex items-center gap-2">
+                <Trash2 size={18} />
+                Hapus Laporan
+              </h3>
+              <button 
+                onClick={() => setIsDeleteModalOpen(false)}
+                className="text-gray-400 hover:text-gray-600 transition"
+              >
+                <X size={18} />
+              </button>
+            </div>
+            <div className="p-5 space-y-4">
+              <div>
+                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">Judul Laporan</p>
+                <p className="text-sm font-semibold text-gray-800">{report.judul}</p>
+              </div>
+              <div className="animate-in fade-in slide-in-from-top-2">
+                <p className="text-[10px] font-bold text-red-500 uppercase tracking-wider mb-2">Alasan Penghapusan <span className="text-red-500">*</span></p>
+                <textarea
+                  value={alasanHapus}
+                  onChange={(e) => setAlasanHapus(e.target.value)}
+                  placeholder="Mengapa laporan ini dihapus? (Cth: Spam, kata-kata tidak pantas...)"
+                  className="w-full h-24 bg-red-50/30 border border-red-200 rounded-xl px-3 py-2.5 text-sm text-gray-700 placeholder:text-red-300 focus:outline-none focus:ring-2 focus:ring-red-400/50 transition resize-none"
+                  required
+                ></textarea>
+                <p className="text-[10px] text-gray-500 mt-2">
+                  Laporan akan disembunyikan dari publik, namun tetap terlihat di riwayat pelapor beserta alasan di atas.
+                </p>
+              </div>
+            </div>
+            <div className="p-4 border-t border-gray-50 flex justify-end gap-2 bg-gray-50/30">
+              <button 
+                onClick={() => setIsDeleteModalOpen(false)}
+                className="px-4 py-2 text-sm font-semibold text-gray-600 hover:bg-gray-100 rounded-xl transition-colors"
+              >
+                Batal
+              </button>
+              <button 
+                onClick={handleDeleteReport}
+                disabled={isDeleting || !alasanHapus.trim()}
+                className="px-4 py-2 bg-red-500 hover:bg-red-600 text-white text-sm font-bold rounded-xl shadow-sm transition-colors disabled:opacity-50"
+              >
+                {isDeleting ? 'Menghapus...' : 'Ya, Hapus'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }
