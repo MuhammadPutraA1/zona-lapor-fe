@@ -6,7 +6,7 @@ import {
   FileText, Search, Clock, CheckCircle2, Activity,
   AlertCircle, Eye, MessageSquare, ChevronLeft,
   ChevronRight, MoreHorizontal, SlidersHorizontal,
-  ArrowUpDown, MapPin, Calendar, User, X
+  ArrowUpDown, MapPin, Calendar, User, X, Trash2
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import toast from 'react-hot-toast';
@@ -27,6 +27,9 @@ export function AdminLaporan() {
   const [newStatus, setNewStatus] = useState('');
   const [updating, setUpdating] = useState(false);
   const [alasanPenolakan, setAlasanPenolakan] = useState('');
+
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [alasanHapus, setAlasanHapus] = useState('');
 
   const filters = [
     { key: 'semua', label: 'Semua' },
@@ -128,6 +131,44 @@ export function AdminLaporan() {
     } catch (error) {
       console.error(error);
       toast.error('Terjadi kesalahan saat mengupdate status.');
+    } finally {
+      setUpdating(false);
+    }
+  };
+
+  const handleDeleteReport = async () => {
+    if (!alasanHapus.trim()) {
+      toast.error('Alasan hapus wajib diisi!');
+      return;
+    }
+    setUpdating(true);
+    try {
+      const resStatus = await fetch(`/api/reports/${selectedReport.id}/status`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ status: 'ditolak' })
+      });
+      const dataStatus = await resStatus.json();
+      
+      if (dataStatus.success) {
+        await fetch(`/api/reports/${selectedReport.id}/tanggapan`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({ isi_tanggapan: `[LAPORAN DIHAPUS]: ${alasanHapus}` })
+        });
+        
+        toast.success("Laporan berhasil dihapus (disembunyikan)!");
+        setIsDeleteModalOpen(false);
+        setAlasanHapus('');
+        fetchReports();
+      } else {
+        toast.error(dataStatus.message || "Gagal menghapus laporan.");
+      }
+    } catch (error) {
+      console.error(error);
+      toast.error("Terjadi kesalahan jaringan.");
     } finally {
       setUpdating(false);
     }
@@ -320,8 +361,12 @@ export function AdminLaporan() {
                 </div>
 
                 {/* Aksi */}
-                <div className="col-span-1 flex items-center justify-end mt-2 md:mt-0">
-                  <button className="w-8 h-8 rounded-lg flex items-center justify-center text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition">
+                <div className="col-span-1 flex items-center justify-end mt-2 md:mt-0 gap-1">
+                  <button 
+                    onClick={(e) => { e.stopPropagation(); router.push(`/laporan/${report.id}`); }}
+                    className="w-8 h-8 rounded-lg flex items-center justify-center text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition"
+                    title="Lihat Detail"
+                  >
                     <Eye size={15} />
                   </button>
                   <button 
@@ -335,6 +380,13 @@ export function AdminLaporan() {
                     title={report.status === 'ditolak' ? 'Laporan Ditolak (Terkunci)' : 'Ubah Status'}
                   >
                     <MoreHorizontal size={15} />
+                  </button>
+                  <button 
+                    onClick={(e) => { e.stopPropagation(); setSelectedReport(report); setIsDeleteModalOpen(true); }}
+                    className="w-8 h-8 rounded-lg flex items-center justify-center text-red-400 hover:bg-red-50 hover:text-red-600 transition"
+                    title="Hapus Laporan"
+                  >
+                    <Trash2 size={15} />
                   </button>
                 </div>
               </div>
@@ -431,6 +483,61 @@ export function AdminLaporan() {
                 className="bg-[#33D6A6] hover:bg-emerald-500 text-white text-sm font-bold rounded-xl shadow-sm"
               >
                 {updating ? 'Menyimpan...' : 'Simpan Perubahan'}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Hapus Laporan */}
+      {isDeleteModalOpen && selectedReport && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-in fade-in">
+          <div className="bg-white rounded-2xl shadow-xl border border-gray-100 w-full max-w-md overflow-hidden flex flex-col">
+            <div className="flex items-center justify-between p-4 border-b border-gray-50 bg-red-50/50">
+              <h3 className="font-bold text-red-700 flex items-center gap-2">
+                <Trash2 size={18} />
+                Hapus Laporan
+              </h3>
+              <button 
+                onClick={() => setIsDeleteModalOpen(false)}
+                className="text-gray-400 hover:text-gray-600 transition"
+              >
+                <X size={18} />
+              </button>
+            </div>
+            <div className="p-5 space-y-4">
+              <div>
+                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">Judul Laporan</p>
+                <p className="text-sm font-semibold text-gray-800">{selectedReport.judul}</p>
+              </div>
+              <div className="animate-in fade-in slide-in-from-top-2">
+                <p className="text-[10px] font-bold text-red-500 uppercase tracking-wider mb-2">Alasan Penghapusan <span className="text-red-500">*</span></p>
+                <textarea
+                  value={alasanHapus}
+                  onChange={(e) => setAlasanHapus(e.target.value)}
+                  placeholder="Mengapa laporan ini dihapus? (Cth: Spam, kata-kata tidak pantas...)"
+                  className="w-full h-24 bg-red-50/30 border border-red-200 rounded-xl px-3 py-2.5 text-sm text-gray-700 placeholder:text-red-300 focus:outline-none focus:ring-2 focus:ring-red-400/50 transition resize-none"
+                  required
+                ></textarea>
+                <p className="text-[10px] text-gray-500 mt-2">
+                  Laporan akan disembunyikan dari publik, namun tetap terlihat di riwayat pelapor beserta alasan di atas.
+                </p>
+              </div>
+            </div>
+            <div className="p-4 border-t border-gray-50 flex justify-end gap-2 bg-gray-50/30">
+              <Button 
+                variant="ghost" 
+                onClick={() => setIsDeleteModalOpen(false)}
+                className="text-sm font-semibold text-gray-600 hover:bg-gray-100 rounded-xl"
+              >
+                Batal
+              </Button>
+              <Button 
+                onClick={handleDeleteReport}
+                disabled={updating || !alasanHapus.trim()}
+                className="bg-red-500 hover:bg-red-600 text-white text-sm font-bold rounded-xl shadow-sm"
+              >
+                {updating ? 'Menghapus...' : 'Ya, Hapus'}
               </Button>
             </div>
           </div>
