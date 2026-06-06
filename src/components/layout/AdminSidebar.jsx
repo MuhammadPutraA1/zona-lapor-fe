@@ -83,7 +83,7 @@ export function AdminSidebar() {
   };
 
   const getNavItems = () => {
-    const basePath = userData?.role === 'admin' ? '/dashboard/admin' : '/dashboard/petugas';
+    const basePath = '/dashboard';
 
     const items = [
       {
@@ -104,12 +104,6 @@ export function AdminSidebar() {
     // Admin-only items
     if (userData?.role === 'admin') {
       items[1].items.push({ name: 'Data Petugas', href: `${basePath}/petugas`, icon: ShieldCheck });
-      items.push({
-        label: 'SISTEM',
-        items: [
-          { name: 'Pengaturan', href: `${basePath}/pengaturan`, icon: Settings },
-        ]
-      });
     }
 
     return items;
@@ -118,7 +112,7 @@ export function AdminSidebar() {
   const navItems = getNavItems();
 
   const isActive = (href) => {
-    const basePath = userData?.role === 'admin' ? '/dashboard/admin' : '/dashboard/petugas';
+    const basePath = '/dashboard';
     if (href === basePath) {
       return pathname === basePath;
     }
@@ -173,7 +167,7 @@ export function AdminSidebar() {
         <div className="space-y-8">
           {/* Logo & Close Button */}
           <div className="flex items-center justify-between">
-            <Link href={userData?.role === 'admin' ? '/dashboard/admin' : '/dashboard/petugas'} className="flex items-center gap-3 group">
+            <Link href="/dashboard" className="flex items-center gap-3 group">
               <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-[#33D6A6] to-emerald-400 flex items-center justify-center text-white font-extrabold text-sm shadow-md shadow-[#33D6A6]/20 group-hover:scale-105 transition-transform duration-300">
                 <ShieldCheck size={20} />
               </div>
@@ -241,13 +235,17 @@ export function AdminSidebar() {
               </div>
             </div>
           ) : (
-            <div className="flex items-center gap-3.5 p-3.5 bg-gray-50 rounded-2xl border border-gray-100/50">
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-[#33D6A6] to-emerald-300 flex items-center justify-center text-white text-base font-bold shadow-sm shrink-0">
+            <Link 
+              href="/dashboard/pengaturan"
+              onClick={() => setIsOpen(false)}
+              className="flex items-center gap-3.5 p-3.5 bg-gray-50 hover:bg-gray-100 rounded-2xl border border-gray-100/50 cursor-pointer transition-colors group"
+            >
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-[#33D6A6] to-emerald-300 flex items-center justify-center text-white text-base font-bold shadow-sm shrink-0 group-hover:scale-105 transition-transform">
                 {userData?.username ? userData.username.charAt(0).toUpperCase() : <User size={18} />}
               </div>
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2">
-                  <p className="text-sm font-bold text-gray-900 truncate leading-none">
+                  <p className="text-sm font-bold text-gray-900 truncate leading-none group-hover:text-[#33D6A6] transition-colors">
                     {userData?.username || 'Admin'}
                   </p>
                   {roleBadge}
@@ -256,7 +254,7 @@ export function AdminSidebar() {
                   {userData?.email || 'admin@zonalapor.id'}
                 </p>
               </div>
-            </div>
+            </Link>
           )}
 
           {/* Logout Button */}
