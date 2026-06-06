@@ -143,7 +143,7 @@ export function AdminDashboard() {
     return badges[status] || null;
   };
 
-  const basePath = userData?.role === 'admin' ? '/dashboard/admin' : '/dashboard/petugas';
+  const basePath = '/dashboard';
 
   return (
     <div className="p-6 md:p-8 max-w-6xl mx-auto space-y-8 animate-in fade-in duration-500">
@@ -297,37 +297,7 @@ export function AdminDashboard() {
             </div>
           </div>
 
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-            <div className="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm flex items-center gap-3.5">
-              <div className="w-10 h-10 rounded-xl bg-violet-50 flex items-center justify-center text-violet-500 border border-violet-100/50 shrink-0">
-                <Users size={18} />
-              </div>
-              <div>
-                <p className="text-xl font-black text-gray-900 leading-none">{stats.totalPengguna}</p>
-                <p className="text-[10px] text-gray-400 font-semibold mt-1 uppercase tracking-wider">Total User</p>
-              </div>
-            </div>
 
-            <div className="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm flex items-center gap-3.5">
-              <div className="w-10 h-10 rounded-xl bg-sky-50 flex items-center justify-center text-sky-500 border border-sky-100/50 shrink-0">
-                <Users size={18} />
-              </div>
-              <div>
-                <p className="text-xl font-black text-gray-900 leading-none">+{stats.penggunaBaru}</p>
-                <p className="text-[10px] text-gray-400 font-semibold mt-1 uppercase tracking-wider">User Baru</p>
-              </div>
-            </div>
-
-            <div className="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm flex items-center gap-3.5">
-              <div className="w-10 h-10 rounded-xl bg-rose-50 flex items-center justify-center text-rose-500 border border-rose-100/50 shrink-0">
-                <AlertCircle size={18} />
-              </div>
-              <div>
-                <p className="text-xl font-black text-gray-900 leading-none">{stats.ditolak}</p>
-                <p className="text-[10px] text-gray-400 font-semibold mt-1 uppercase tracking-wider">Ditolak</p>
-              </div>
-            </div>
-          </div>
         </div>
 
         {/* Right: Sidebar Widgets */}
@@ -380,6 +350,17 @@ export function AdminDashboard() {
                   <div className="h-full bg-gradient-to-r from-rose-400 to-rose-500 rounded-full transition-all duration-1000" style={{ width: `${stats.totalLaporan > 0 ? (stats.ditolak / stats.totalLaporan) * 100 : 0}%` }} />
                 </div>
               </div>
+            </div>
+          </div>
+
+
+          <div className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm flex items-center justify-between hover:shadow-md transition-shadow cursor-pointer" onClick={() => router.push('/dashboard/pengguna')}>
+            <div>
+              <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Total Pengguna</p>
+              <p className="text-3xl font-black text-gray-900 leading-none">{stats.totalPengguna}</p>
+            </div>
+            <div className="w-14 h-14 rounded-2xl bg-violet-50 flex items-center justify-center text-violet-500 border border-violet-100/50 shrink-0">
+              <Users size={28} />
             </div>
           </div>
 
