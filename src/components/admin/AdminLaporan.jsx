@@ -6,7 +6,7 @@ import {
   FileText, Search, Clock, CheckCircle2, Activity,
   AlertCircle, Eye, MessageSquare, ChevronLeft,
   ChevronRight, MoreHorizontal, SlidersHorizontal,
-  ArrowUpDown, MapPin, Calendar, User, X, Trash2
+  ArrowUpDown, MapPin, Calendar, User, X, Trash2, Loader2
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import toast from 'react-hot-toast';
@@ -137,34 +137,20 @@ export function AdminLaporan() {
   };
 
   const handleDeleteReport = async () => {
-    if (!alasanHapus.trim()) {
-      toast.error('Alasan hapus wajib diisi!');
-      return;
-    }
     setUpdating(true);
     try {
-      const resStatus = await fetch(`/api/reports/${selectedReport.id}/status`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({ status: 'ditolak' })
+      const res = await fetch(`/api/reports/${selectedReport.id}`, {
+        method: 'DELETE',
+        credentials: 'include'
       });
-      const dataStatus = await resStatus.json();
+      const data = await res.json();
       
-      if (dataStatus.success) {
-        await fetch(`/api/reports/${selectedReport.id}/tanggapan`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          credentials: 'include',
-          body: JSON.stringify({ isi_tanggapan: `[LAPORAN DIHAPUS]: ${alasanHapus}` })
-        });
-        
-        toast.success("Laporan berhasil dihapus (disembunyikan)!");
+      if (res.ok && data.success) {
+        toast.success("Laporan berhasil dihapus secara permanen!");
         setIsDeleteModalOpen(false);
-        setAlasanHapus('');
         fetchReports();
       } else {
-        toast.error(dataStatus.message || "Gagal menghapus laporan.");
+        toast.error(data.message || "Gagal menghapus laporan.");
       }
     } catch (error) {
       console.error(error);
@@ -506,39 +492,48 @@ export function AdminLaporan() {
               </button>
             </div>
             <div className="p-5 space-y-4">
-              <div>
-                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">Judul Laporan</p>
-                <p className="text-sm font-semibold text-gray-800">{selectedReport.judul}</p>
+              <div className="flex items-center gap-3 bg-red-50/50 rounded-xl p-3 border border-red-100">
+                <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center shrink-0 shadow-sm border border-red-50">
+                  <FileText size={16} className="text-red-500" />
+                </div>
+                <div>
+                  <p className="text-[10px] font-bold text-red-500/70 uppercase tracking-wider mb-0.5">Laporan Terpilih</p>
+                  <p className="text-sm font-semibold text-gray-800 line-clamp-1">{selectedReport.judul}</p>
+                </div>
               </div>
-              <div className="animate-in fade-in slide-in-from-top-2">
-                <p className="text-[10px] font-bold text-red-500 uppercase tracking-wider mb-2">Alasan Penghapusan <span className="text-red-500">*</span></p>
-                <textarea
-                  value={alasanHapus}
-                  onChange={(e) => setAlasanHapus(e.target.value)}
-                  placeholder="Mengapa laporan ini dihapus? (Cth: Spam, kata-kata tidak pantas...)"
-                  className="w-full h-24 bg-red-50/30 border border-red-200 rounded-xl px-3 py-2.5 text-sm text-gray-700 placeholder:text-red-300 focus:outline-none focus:ring-2 focus:ring-red-400/50 transition resize-none"
-                  required
-                ></textarea>
-                <p className="text-[10px] text-gray-500 mt-2">
-                  Laporan akan disembunyikan dari publik, namun tetap terlihat di riwayat pelapor beserta alasan di atas.
+
+              <div className="animate-in fade-in slide-in-from-top-2 pt-2">
+                <p className="text-sm text-gray-600 mb-2">
+                  Apakah Anda yakin ingin menghapus laporan ini secara permanen?
+                </p>
+                <p className="text-[11px] text-red-500 font-medium bg-red-50 p-2.5 rounded-lg border border-red-100/50">
+                  ⚠️ Peringatan: Tindakan ini akan menghapus semua komentar, tanggapan, dan lampiran terkait. Data yang dihapus tidak dapat dipulihkan.
                 </p>
               </div>
             </div>
-            <div className="p-4 border-t border-gray-50 flex justify-end gap-2 bg-gray-50/30">
-              <Button 
-                variant="ghost" 
+            
+            <div className="p-4 border-t border-gray-50 flex justify-end gap-2 bg-gray-50/50 mt-auto">
+              <button 
                 onClick={() => setIsDeleteModalOpen(false)}
-                className="text-sm font-semibold text-gray-600 hover:bg-gray-100 rounded-xl"
+                className="px-4 py-2.5 text-sm font-bold text-gray-600 hover:bg-white hover:shadow-sm rounded-xl transition-all border border-transparent hover:border-gray-200"
               >
                 Batal
-              </Button>
-              <Button 
+              </button>
+              <button 
                 onClick={handleDeleteReport}
-                disabled={updating || !alasanHapus.trim()}
-                className="bg-red-500 hover:bg-red-600 text-white text-sm font-bold rounded-xl shadow-sm"
+                disabled={updating}
+                className="px-5 py-2.5 bg-red-600 hover:bg-red-700 text-white text-sm font-bold rounded-xl shadow-sm shadow-red-200 transition-all disabled:opacity-50 flex items-center gap-2 active:scale-95"
               >
-                {updating ? 'Menghapus...' : 'Ya, Hapus'}
-              </Button>
+                {updating ? (
+                  <>
+                    <Loader2 size={16} className="animate-spin" /> Menghapus...
+                  </>
+                ) : (
+                  <>
+                    <Trash2 size={16} /> Ya, Hapus Permanen
+                  </>
+                )}
+              </button>
             </div>
           </div>
         </div>
