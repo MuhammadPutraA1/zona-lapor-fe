@@ -1,9 +1,13 @@
-import { AdminDashboard } from '@/components/admin/AdminDashboard';
+import UserManagement from "@/components/admin/UserManagement";
 
 export const metadata = {
-  title: 'Dashboard Petugas - Zona Lapor',
+  title: "Data Petugas - Admin Panel",
 };
 
-export default function PetugasDashboardPage() {
-  return <AdminDashboard />;
+export default function PetugasPage() {
+  return (
+    <div className="p-6 md:p-8 max-w-7xl mx-auto space-y-6">
+      <UserManagement roleTarget="petugas" />
+    </div>
+  );
 }
