@@ -27,10 +27,8 @@ export function middleware(request) {
 
       // Jika user sudah login dan mencoba akses halaman login/register atau landing page
       if (isAuthRoute || isLandingRoute) {
-        if (role === 'admin') {
-          return NextResponse.redirect(new URL('/dashboard/admin', request.url));
-        } else if (role === 'petugas') {
-          return NextResponse.redirect(new URL('/dashboard/petugas', request.url));
+        if (role === 'admin' || role === 'petugas') {
+          return NextResponse.redirect(new URL('/dashboard', request.url));
         } else {
           return NextResponse.redirect(new URL('/users', request.url));
         }
@@ -42,26 +40,16 @@ export function middleware(request) {
           return NextResponse.redirect(new URL('/users', request.url));
         }
 
-        // Jika mengakses root /dashboard, redirect ke halaman masing-masing
-        if (pathname === '/dashboard') {
-          return NextResponse.redirect(new URL(`/dashboard/${role}`, request.url));
-        }
-
-        // Petugas tidak boleh masuk ke /dashboard/admin
-        if (pathname.startsWith('/dashboard/admin') && role === 'petugas') {
-          return NextResponse.redirect(new URL('/dashboard/petugas', request.url));
-        }
-
-        // Admin (opsional) tidak boleh masuk ke /dashboard/petugas? 
-        // Biarkan admin bisa ke mana saja, atau paksa ke /dashboard/admin. Kita paksa ke admin agar rapi
-        if (pathname.startsWith('/dashboard/petugas') && role === 'admin') {
-          return NextResponse.redirect(new URL('/dashboard/admin', request.url));
+        // Rute /dashboard/petugas sekarang adalah rute "Kelola Data Petugas", bukan dashboard utama.
+        // Oleh karena itu, hanya Admin yang boleh mengaksesnya.
+        if (pathname.startsWith('/dashboard/petugas') && role !== 'admin') {
+          return NextResponse.redirect(new URL('/dashboard', request.url));
         }
       }
 
       // Proteksi Role untuk rute /users (hanya masyarakat)
       if (isUsersRoute && (role === 'admin' || role === 'petugas')) {
-        return NextResponse.redirect(new URL(`/dashboard/${role}`, request.url));
+        return NextResponse.redirect(new URL('/dashboard', request.url));
       }
     } catch (error) {
       // Jika token tidak valid/bisa didecode, hapus cookie dan arahkan ke login
