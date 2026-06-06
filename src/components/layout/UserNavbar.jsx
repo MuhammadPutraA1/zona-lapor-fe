@@ -68,21 +68,13 @@ export function UserNavbar() {
       {/* MENU */}
       <div className="flex items-center gap-4">
         
-        <Link 
-          href="/users/history" 
-          className="hidden md:flex items-center gap-2 text-sm font-semibold text-gray-600 hover:text-[#33D6A6] transition-colors"
-        >
-          <Clock size={18} />
-          Riwayat Laporan
-        </Link>
-
-        {userData?.role !== 'user' && userData !== null && (
+        {(!userData || userData?.role === 'user') && (
           <Link 
-            href="/dashboard" 
-            className="hidden md:flex items-center gap-2 text-sm font-semibold text-gray-600 hover:text-indigo-500 transition-colors mr-2"
+            href="/users/history" 
+            className="hidden md:flex items-center gap-2 text-sm font-semibold text-gray-600 hover:text-[#33D6A6] transition-colors"
           >
-            <ShieldCheck size={18} />
-            Admin Panel
+            <Clock size={18} />
+            Riwayat Laporan
           </Link>
         )}
 
@@ -114,23 +106,25 @@ export function UserNavbar() {
                   <p className="text-xs font-medium text-gray-500 truncate">{userData?.email}</p>
                 </div>
                 <div className="p-2 space-y-1">
-                  <Link 
-                    href="/users/history"
-                    className="md:hidden flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-50 transition-colors"
-                    onClick={() => setIsDropdownOpen(false)}
-                  >
-                    <Clock size={16} className="text-gray-400" />
-                    Riwayat Laporan
-                  </Link>
+                  {(!userData || userData?.role === 'user') && (
+                    <Link 
+                      href="/users/history"
+                      className="md:hidden flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-50 transition-colors"
+                      onClick={() => setIsDropdownOpen(false)}
+                    >
+                      <Clock size={16} className="text-gray-400" />
+                      Riwayat Laporan
+                    </Link>
+                  )}
 
-                  {userData?.role !== 'user' && (
+                  {userData?.role !== 'user' && userData !== null && (
                     <Link 
                       href="/dashboard"
-                      className="md:hidden flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-medium text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50 transition-colors"
+                      className="flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-medium text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50 transition-colors"
                       onClick={() => setIsDropdownOpen(false)}
                     >
                       <ShieldCheck size={16} className="text-indigo-400" />
-                      Admin Panel
+                      Dashboard
                     </Link>
                   )}
 
