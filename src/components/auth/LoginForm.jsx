@@ -11,13 +11,13 @@ export function LoginForm() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  const [success, setSuccess] = useState(false);
+  const [successMsg, setSuccessMsg] = useState("");
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
     setError(null);
-    setSuccess(false);
+    setSuccessMsg("");
 
     const email = e.target.email.value;
     const password = e.target.password.value;
@@ -39,7 +39,7 @@ export function LoginForm() {
       }
 
       if (result.success) {
-        setSuccess(true);
+        setSuccessMsg("Login berhasil! Mengalihkan halaman...");
         // Cookie sudah otomatis di-set oleh backend (httpOnly cookie)
         // Ambil data user untuk cek role, lalu redirect sesuai role
         try {
@@ -52,10 +52,8 @@ export function LoginForm() {
           }
 
           setTimeout(() => {
-            if (role === 'admin') {
-              router.push('/dashboard/admin');
-            } else if (role === 'petugas') {
-              router.push('/dashboard/petugas');
+            if (role === 'admin' || role === 'petugas') {
+              router.push('/dashboard');
             } else {
               router.push('/users');
             }
@@ -94,10 +92,10 @@ export function LoginForm() {
         </div>
       )}
 
-      {success && (
+      {successMsg && (
         <div className="mb-6 p-4 bg-emerald-50 border border-emerald-100 rounded-lg flex items-start gap-3">
           <CheckCircle2 className="w-5 h-5 text-emerald-500 shrink-0 mt-0.5" />
-          <p className="text-sm text-emerald-700">Login berhasil! Mengarahkan ke dashboard...</p>
+          <p className="text-sm text-emerald-700">{successMsg}</p>
         </div>
       )}
 
@@ -106,7 +104,7 @@ export function LoginForm() {
         <Input label="Password" id="password" name="password" type="password" placeholder="contoh: saya123" required />
 
         <div className="pt-2">
-          <Button type="submit" className="w-full bg-[#33D6A6]" disabled={loading || success}>
+          <Button type="submit" className="w-full bg-[#33D6A6]" disabled={loading || !!successMsg}>
             {loading ? (
               <span className="flex items-center gap-2">
                 <Loader2 className="w-4 h-4 animate-spin" /> Memproses...
